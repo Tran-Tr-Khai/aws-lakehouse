@@ -1,0 +1,203 @@
+version: 2
+
+models:
+  - name: dim_zone
+    description: Taxi zone dimension built from the taxi zone lookup reference table.
+    columns:
+      - name: location_id
+        description: Unique taxi zone location identifier.
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_payment_type
+    description: Payment type dimension for Yellow Taxi trips.
+    columns:
+      - name: payment_type_id
+        tests:
+          - not_null
+          - unique
+          - accepted_values:
+              arguments: 
+                values: [1, 2, 3, 4]
+                quote: false
+
+      - name: payment_type_name
+        tests:
+          - not_null
+
+  - name: dim_rate_code
+    description: Rate code dimension for Yellow Taxi trips.
+    columns:
+      - name: ratecode_id
+        tests:
+          - not_null
+          - unique
+
+      - name: ratecode_name
+        tests:
+          - not_null
+
+  - name: dim_vendor
+    description: Taxi vendor dimension.
+    columns:
+      - name: vendor_id
+        tests:
+          - not_null
+          - unique
+          - accepted_values:
+              arguments:
+                values: [1, 2]
+                quote: false
+
+      - name: vendor_name
+        tests:
+          - not_null
+
+  - name: dim_hour
+    description: Hour dimension for pickup time analysis.
+    columns:
+      - name: hour_key
+        tests:
+          - not_null
+          - unique
+
+      - name: hour
+        tests:
+          - not_null
+
+      - name: time_period
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['late_night', 'morning', 'midday', 'evening', 'night']
+                quote: true
+      
+  - name: dim_date
+    description: Date dimension built from Silver pickup dates.
+    columns:
+      - name: date_key
+        description: Date key in yyyyMMdd format.
+        tests:
+          - not_null
+          - unique
+
+      - name: date
+        description: Calendar date.
+        tests:
+          - not_null
+          - unique
+
+      - name: year
+        tests:
+          - not_null
+
+      - name: month
+        tests:
+          - not_null
+
+      - name: day
+        tests:
+          - not_null
+
+      - name: day_of_week
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                quote: true
+
+      - name: is_weekend
+        tests:
+          - not_null
+          
+  - name: fact_trip
+    description: Central Gold fact table with one row per valid analytical taxi trip.
+    columns:
+      - name: trip_id
+        description: Synthetic unique trip identifier.
+        tests:
+          - not_null
+          - unique
+
+      - name: pickup_datetime
+        tests:
+          - not_null
+
+      - name: dropoff_datetime
+        tests:
+          - not_null
+
+      - name: pickup_date_key
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+
+      - name: pickup_hour_key
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_hour')
+                field: hour_key
+
+      - name: vendor_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_vendor')
+                field: vendor_id
+
+      - name: ratecode_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_rate_code')
+                field: ratecode_id
+
+      - name: payment_type_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_payment_type')
+                field: payment_type_id
+
+      - name: pickup_location_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_zone')
+                field: location_id
+
+      - name: dropoff_location_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_zone')
+                field: location_id
+
+      - name: trip_distance
+        tests:
+          - not_null
+
+      - name: trip_duration_minutes
+        tests:
+          - not_null
+
+      - name: fare_amount
+        tests:
+          - not_null
+
+      - name: total_amount
+        tests:
+          - not_null
