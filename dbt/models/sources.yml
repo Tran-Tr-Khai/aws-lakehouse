@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: nyc_taxi_lakehouse
+    database: awsdatacatalog
+    schema: nyc_taxi_lakehouse
+    tables:
+      - name: silver_yellow_taxi
+        description: Cleaned and quality-aware NYC Yellow Taxi trip data from the Silver layer.
+
+      - name: reference_taxi_zone_lookup
+        description: Taxi zone lookup reference table.

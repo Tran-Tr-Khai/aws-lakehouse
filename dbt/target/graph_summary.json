@@ -1,0 +1,1 @@
+{"_invocation_id": "7297b9ca-13d8-4f0e-8a63-be3ec0f0378d", "linked": {"0": {"name": "source.nyc_taxi_lakehouse.nyc_taxi_lakehouse.silver_yellow_taxi", "type": "source"}, "1": {"name": "source.nyc_taxi_lakehouse.nyc_taxi_lakehouse.reference_taxi_zone_lookup", "type": "source", "succ": [2]}, "2": {"name": "model.nyc_taxi_lakehouse.dim_zone", "type": "model"}}}
