@@ -104,6 +104,49 @@ silver_df = (
             F.col("tip_amount") / F.col("fare_amount"),
         ).otherwise(F.lit(None)),
     )
+    .withColumn(
+        "avg_speed_mph",
+        F.when(
+            F.col("trip_duration_minutes") > 0,
+            F.col("trip_distance") / (F.col("trip_duration_minutes") / 60.0),
+        ).otherwise(F.lit(None)),
+    )
+    .withColumn(
+        "fare_per_minute",
+        F.when(
+            F.col("trip_duration_minutes") > 0,
+            F.col("fare_amount") / F.col("trip_duration_minutes"),
+        ).otherwise(F.lit(None)),
+    )
+    .withColumn(
+        "same_pickup_dropoff_zone",
+        F.col("PULocationID") == F.col("DOLocationID"),
+    )
+    .withColumn(
+        "is_extreme_speed",
+        F.col("avg_speed_mph") > 120,
+    )
+    .withColumn(
+        "is_fare_distance_mismatch",
+        (F.col("trip_distance") < 0.1) & (F.col("fare_amount") > 100),
+    )
+    .withColumn(
+        "is_distance_duration_mismatch",
+        (F.col("trip_distance") > 100) & (F.col("trip_duration_minutes") < 90),
+    )
+    .withColumn(
+        "is_same_zone_high_fare",
+        (F.col("PULocationID") == F.col("DOLocationID"))
+        & (F.col("trip_distance") < 0.1)
+        & (F.col("fare_amount") > 100),
+    )
+    .withColumn(
+        "is_analytical_outlier",
+        F.col("is_extreme_speed")
+        | F.col("is_fare_distance_mismatch")
+        | F.col("is_distance_duration_mismatch")
+        | F.col("is_same_zone_high_fare"),
+    )
     .withColumn("year", F.lit(year))
     .withColumn("month", F.lit(month))
     .select(
@@ -132,6 +175,14 @@ silver_df = (
         F.col("pickup_day_of_week"),
         F.col("fare_per_mile"),
         F.col("tip_rate"),
+        F.col("avg_speed_mph"),
+        F.col("fare_per_minute"),
+        F.col("same_pickup_dropoff_zone"),
+        F.col("is_extreme_speed"),
+        F.col("is_fare_distance_mismatch"),
+        F.col("is_distance_duration_mismatch"),
+        F.col("is_same_zone_high_fare"),
+        F.col("is_analytical_outlier"),
         F.col("year"),
         F.col("month"),
     )
