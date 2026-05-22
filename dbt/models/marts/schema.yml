@@ -77,3 +77,37 @@ models:
               arguments:
                 values: ['late_night', 'morning', 'midday', 'evening', 'night']
                 quote: true
+
+  - name: mart_pickup_zone_performance
+    description: Pickup zone performance mart built from fact_trip and dim_zone.
+    columns:
+      - name: pickup_location_id
+        description: Pickup taxi zone location identifier.
+        tests:
+          - not_null
+          - unique
+
+      - name: pickup_borough
+        description: Pickup borough.
+        tests:
+          - not_null
+
+      - name: pickup_zone
+        description: Pickup taxi zone name.
+        tests:
+          - not_null
+
+      - name: total_trips
+        description: Total number of valid analytical trips from the pickup zone.
+        tests:
+          - not_null
+
+      - name: total_passengers
+        description: Total passengers from the pickup zone.
+        tests:
+          - not_null
+
+      - name: total_amount
+        description: Total trip amount from the pickup zone.
+        tests:
+          - not_null
