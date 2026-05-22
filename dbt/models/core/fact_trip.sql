@@ -2,6 +2,7 @@
     materialized='table',
     table_type='hive',
     format='parquet',
+    external_location='s3://nyc-taxi-lakehouse-tntk/gold/core/fact_trip/',
     partitioned_by=['year', 'month']
 ) }}
 

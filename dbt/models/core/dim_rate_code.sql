@@ -1,7 +1,8 @@
 {{ config(
     materialized='table',
     table_type='hive',
-    format='parquet'
+    format='parquet', 
+    external_location='s3://nyc-taxi-lakehouse-tntk/gold/core/dim_rate_code/'
 ) }}
 
 select *
