@@ -111,3 +111,41 @@ models:
         description: Total trip amount from the pickup zone.
         tests:
           - not_null
+
+  - name: mart_payment_behavior
+    description: Payment behavior mart built from fact_trip and dim_payment_type.
+    columns:
+      - name: payment_type_id
+        description: Payment type identifier.
+        tests:
+          - not_null
+          - unique
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
+                quote: false
+
+      - name: payment_type_name
+        description: Payment type label.
+        tests:
+          - not_null
+
+      - name: total_trips
+        description: Total number of valid analytical trips by payment type.
+        tests:
+          - not_null
+
+      - name: total_amount
+        description: Total trip amount by payment type.
+        tests:
+          - not_null
+
+      - name: total_fare_amount
+        description: Total fare amount by payment type.
+        tests:
+          - not_null
+
+      - name: total_tip_amount
+        description: Total tip amount by payment type.
+        tests:
+          - not_null
