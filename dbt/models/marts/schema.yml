@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: mart_daily_trip_revenue
+    description: Daily trip and revenue mart built from fact_trip and dim_date.
+    columns:
+      - name: date_key
+        description: Date key in yyyyMMdd format. One row per pickup date.
+        tests:
+          - not_null
+          - unique
+
+      - name: date
+        description: Calendar date.
+        tests:
+          - not_null
+          - unique
+
+      - name: total_trips
+        description: Total number of valid analytical trips for the date.
+        tests:
+          - not_null
+
+      - name: total_passengers
+        description: Total passengers for the date.
+        tests:
+          - not_null
+
+      - name: total_amount
+        description: Total trip amount for the date.
+        tests:
+          - not_null
+
+      - name: total_fare_amount
+        description: Total base fare amount for the date.
+        tests:
+          - not_null
+
+      - name: total_tip_amount
+        description: Total tip amount for the date.
+        tests:
+          - not_null
