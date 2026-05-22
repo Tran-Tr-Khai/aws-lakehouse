@@ -149,3 +149,35 @@ models:
         description: Total tip amount by payment type.
         tests:
           - not_null
+  - name: mart_airport_trip_summary
+    description: Airport trip summary mart built from fact_trip and dim_zone.
+    columns:
+      - name: airport_trip_type
+        description: Airport trip category.
+        tests:
+          - not_null
+          - unique
+          - accepted_values:
+              arguments:
+                values: ['airport_to_airport', 'airport_pickup', 'airport_dropoff', 'non_airport']
+                quote: true
+
+      - name: total_trips
+        description: Total number of valid analytical trips by airport category.
+        tests:
+          - not_null
+
+      - name: total_passengers
+        description: Total passengers by airport category.
+        tests:
+          - not_null
+
+      - name: total_amount
+        description: Total trip amount by airport category.
+        tests:
+          - not_null
+
+      - name: total_airport_fee
+        description: Total airport fee by airport category.
+        tests:
+          - not_null
