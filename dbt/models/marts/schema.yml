@@ -40,3 +40,40 @@ models:
         description: Total tip amount for the date.
         tests:
           - not_null
+  
+  - name: mart_hourly_demand
+    description: Hourly demand mart built from fact_trip, dim_date, and dim_hour.
+    columns:
+      - name: date_key
+        description: Date key in yyyyMMdd format.
+        tests:
+          - not_null
+
+      - name: hour_key
+        description: Hour of day from 0 to 23.
+        tests:
+          - not_null
+
+      - name: total_trips
+        description: Total number of valid analytical trips for the date-hour.
+        tests:
+          - not_null
+
+      - name: total_passengers
+        description: Total passengers for the date-hour.
+        tests:
+          - not_null
+
+      - name: total_amount
+        description: Total trip amount for the date-hour.
+        tests:
+          - not_null
+
+      - name: time_period
+        description: Time period bucket for the hour.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['late_night', 'morning', 'midday', 'evening', 'night']
+                quote: true
