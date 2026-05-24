@@ -192,7 +192,7 @@ Validate again after Silver.
 
 Implement AWS Glue PySpark job:
 
-`jobs/glue_silver_yellow_taxi.py`
+`nyctx-glue-processor/jobs/glue_silver_yellow_taxi.py`
 
 The job will:
 

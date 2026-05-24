@@ -8,7 +8,7 @@ BUCKET="nyc-taxi-lakehouse-tntk"
 JOB_NAME="glue-silver-yellow-taxi"
 ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/glue-nyc-taxi-lakehouse-role"
 
-LOCAL_SCRIPT_PATH="jobs/glue_silver_yellow_taxi.py"
+LOCAL_SCRIPT_PATH="nyctx-glue-processor/jobs/glue_silver_yellow_taxi.py"
 S3_SCRIPT_PATH="s3://${BUCKET}/scripts/glue_silver_yellow_taxi.py"
 
 GLUE_VERSION="4.0"

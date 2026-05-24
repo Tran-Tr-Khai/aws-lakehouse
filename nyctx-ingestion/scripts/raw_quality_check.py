@@ -1,11 +1,11 @@
 import argparse
 from pathlib import Path
 
-from src.logger import setup_file_logger
-from src.quality import run_raw_quality_check
+from nyctx_ingestion.logger import setup_file_logger
+from nyctx_ingestion.quality import run_raw_quality_check
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def get_trip_file(year: int, month: int) -> Path:

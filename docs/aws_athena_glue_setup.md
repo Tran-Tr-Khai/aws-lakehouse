@@ -67,7 +67,7 @@ Database:
 
 SQL script:
 
-[01_create_database.sql](../sql/athena/01_create_database.sql)
+[01_create_database.sql](../nyctx-athena-catalog/ddl/01_create_database.sql)
 
 ## 6. Bronze Yellow Taxi Table
 
@@ -83,9 +83,9 @@ Purpose:
 
 SQL scripts:
 
-- [02_create_bronze_yellow_taxi_table.sql](../sql/athena/02_create_bronze_yellow_taxi_table.sql)
-- [03_add_bronze_partitions.sql](../sql/athena/03_add_bronze_partitions.sql)
-- [04_validate_bronze_yellow_taxi.sql](../sql/athena/04_validate_bronze_yellow_taxi.sql)
+- [02_create_bronze_yellow_taxi_table.sql](../nyctx-athena-catalog/ddl/02_create_bronze_yellow_taxi_table.sql)
+- [03_add_bronze_partitions.sql](../nyctx-athena-catalog/partitions/03_add_bronze_partitions.sql)
+- [04_validate_bronze_yellow_taxi.sql](../nyctx-athena-catalog/validation/04_validate_bronze_yellow_taxi.sql)
 
 Validation result:
 
@@ -106,8 +106,8 @@ Purpose:
 
 SQL scripts:
 
-- [05_create_reference_taxi_zone_lookup_table.sql](../sql/athena/05_create_reference_taxi_zone_lookup_table.sql)
-- [06_validate_reference_taxi_zone_lookup.sql](../sql/athena/06_validate_reference_taxi_zone_lookup.sql)
+- [05_create_reference_taxi_zone_lookup_table.sql](../nyctx-athena-catalog/ddl/05_create_reference_taxi_zone_lookup_table.sql)
+- [06_validate_reference_taxi_zone_lookup.sql](../nyctx-athena-catalog/validation/06_validate_reference_taxi_zone_lookup.sql)
 
 Validation result:
 
@@ -124,7 +124,7 @@ Purpose:
 
 SQL script:
 
-[07_validate_bronze_reference_join.sql](../sql/athena/07_validate_bronze_reference_join.sql)
+[07_validate_bronze_reference_join.sql](../nyctx-athena-catalog/validation/07_validate_bronze_reference_join.sql)
 
 Top pickup zones from January 2024:
 
@@ -145,11 +145,11 @@ Top pickup zones from January 2024:
 
 Athena SQL scripts:
 
-[sql/athena/](../sql/athena/)
+[nyctx-athena-catalog/](../nyctx-athena-catalog/)
 
 Upload script:
 
-[scripts/upload_to_s3.sh](../scripts/upload_to_s3.sh)
+[nyctx-ingestion/scripts/upload_to_s3.sh](../nyctx-ingestion/scripts/upload_to_s3.sh)
 
 ## 10. Conclusion
 
