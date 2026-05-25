@@ -2,59 +2,119 @@
 
 set -euo pipefail
 
-# ==============================
-# Project config
-# ==============================
-
 BUCKET_NAME="nyc-taxi-lakehouse-tntk"
-YEAR="2024"
-MONTH="01"
+LANDING_DIR="data/landing"
 
-# ==============================
-# Local files
-# ==============================
+MONTHS_FILE=""
+YEAR_MONTHS=()
+WITH_ZONE_LOOKUP=false
 
-LOCAL_TRIP_FILE="data/landing/yellow_taxi/year=${YEAR}/month=${MONTH}/yellow_tripdata_${YEAR}-${MONTH}.parquet"
-LOCAL_LOOKUP_FILE="data/landing/lookup/taxi_zone_lookup.csv"
+usage() {
+  echo "Usage:"
+  echo "  $0 --year-months 2024-01 2020-04 [--with-zone-lookup]"
+  echo "  $0 --months-file config/recovery_sample_months.txt [--with-zone-lookup]"
+}
 
-# ==============================
-# S3 target paths
-# ==============================
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --year-months)
+      shift
+      while [[ $# -gt 0 && "$1" != --* ]]; do
+        YEAR_MONTHS+=("$1")
+        shift
+      done
+      ;;
+    --months-file)
+      MONTHS_FILE="$2"
+      shift 2
+      ;;
+    --with-zone-lookup)
+      WITH_ZONE_LOOKUP=true
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "ERROR: Unknown argument: $1"
+      usage
+      exit 1
+      ;;
+  esac
+done
 
-S3_TRIP_PATH="s3://${BUCKET_NAME}/bronze/yellow_taxi/year=${YEAR}/month=${MONTH}/yellow_tripdata_${YEAR}-${MONTH}.parquet"
-S3_LOOKUP_PATH="s3://${BUCKET_NAME}/reference/taxi_zone_lookup.csv"
+if [[ -n "${MONTHS_FILE}" ]]; then
+  if [[ ! -f "${MONTHS_FILE}" ]]; then
+    echo "ERROR: Months file not found: ${MONTHS_FILE}"
+    exit 1
+  fi
+
+  while IFS= read -r line; do
+    line="$(echo "$line" | xargs)"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    YEAR_MONTHS+=("$line")
+  done < "${MONTHS_FILE}"
+fi
+
+if [[ ${#YEAR_MONTHS[@]} -eq 0 ]]; then
+  echo "ERROR: No months provided."
+  usage
+  exit 1
+fi
 
 echo "========================================"
-echo "Uploading NYC Taxi data to AWS S3"
+echo "Uploading NYC Taxi landing data to S3"
 echo "Bucket: ${BUCKET_NAME}"
-echo "Year: ${YEAR}"
-echo "Month: ${MONTH}"
+echo "Months: ${YEAR_MONTHS[*]}"
 echo "========================================"
 
-if [ ! -f "${LOCAL_TRIP_FILE}" ]; then
-  echo "ERROR: Trip file not found: ${LOCAL_TRIP_FILE}"
-  exit 1
+if [[ "${WITH_ZONE_LOOKUP}" == true ]]; then
+  LOCAL_LOOKUP_FILE="${LANDING_DIR}/lookup/taxi_zone_lookup.csv"
+  S3_LOOKUP_PATH="s3://${BUCKET_NAME}/reference/taxi_zone_lookup.csv"
+
+  if [[ ! -f "${LOCAL_LOOKUP_FILE}" ]]; then
+    echo "ERROR: Lookup file not found: ${LOCAL_LOOKUP_FILE}"
+    exit 1
+  fi
+
+  echo ""
+  echo "[UPLOAD] Zone lookup"
+  aws s3 cp "${LOCAL_LOOKUP_FILE}" "${S3_LOOKUP_PATH}"
 fi
 
-if [ ! -f "${LOCAL_LOOKUP_FILE}" ]; then
-  echo "ERROR: Lookup file not found: ${LOCAL_LOOKUP_FILE}"
-  exit 1
-fi
+for YEAR_MONTH in "${YEAR_MONTHS[@]}"; do
+  if [[ ! "${YEAR_MONTH}" =~ ^[0-9]{4}-[0-9]{2}$ ]]; then
+    echo "ERROR: Invalid year-month format: ${YEAR_MONTH}. Expected YYYY-MM."
+    exit 1
+  fi
 
-echo ""
-echo "Uploading trip file..."
-aws s3 cp "${LOCAL_TRIP_FILE}" "${S3_TRIP_PATH}"
+  YEAR="${YEAR_MONTH:0:4}"
+  MONTH="${YEAR_MONTH:5:2}"
 
-echo ""
-echo "Uploading zone lookup file..."
-aws s3 cp "${LOCAL_LOOKUP_FILE}" "${S3_LOOKUP_PATH}"
+  if (( 10#${MONTH} < 1 || 10#${MONTH} > 12 )); then
+    echo "ERROR: Invalid month: ${MONTH}"
+    exit 1
+  fi
+
+  FILE_NAME="yellow_tripdata_${YEAR}-${MONTH}.parquet"
+  LOCAL_TRIP_FILE="${LANDING_DIR}/yellow_taxi/year=${YEAR}/month=${MONTH}/${FILE_NAME}"
+  S3_TRIP_PATH="s3://${BUCKET_NAME}/bronze/yellow_taxi/year=${YEAR}/month=${MONTH}/${FILE_NAME}"
+
+  if [[ ! -f "${LOCAL_TRIP_FILE}" ]]; then
+    echo "ERROR: Trip file not found: ${LOCAL_TRIP_FILE}"
+    exit 1
+  fi
+
+  echo ""
+  echo "[UPLOAD] ${YEAR_MONTH}"
+  echo "Local: ${LOCAL_TRIP_FILE}"
+  echo "S3:    ${S3_TRIP_PATH}"
+
+  aws s3 cp "${LOCAL_TRIP_FILE}" "${S3_TRIP_PATH}"
+done
 
 echo ""
 echo "========================================"
 echo "Upload completed successfully"
-echo "Trip file uploaded to:"
-echo "${S3_TRIP_PATH}"
-echo ""
-echo "Lookup file uploaded to:"
-echo "${S3_LOOKUP_PATH}"
 echo "========================================"
