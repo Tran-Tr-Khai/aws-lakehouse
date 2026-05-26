@@ -15,6 +15,7 @@ GLUE_VERSION="4.0"
 WORKER_TYPE="G.1X"
 NUMBER_OF_WORKERS=2
 TIMEOUT_MINUTES=15
+MAX_CONCURRENT_RUNS=1
 
 DEFAULT_YEAR="2024"
 DEFAULT_MONTH="1"
@@ -34,31 +35,41 @@ fi
 echo "Uploading Glue script to S3..."
 aws s3 cp "${LOCAL_SCRIPT_PATH}" "${S3_SCRIPT_PATH}" --region "${AWS_REGION}"
 
+JOB_CONFIG=$(
+  cat <<EOF
+{
+  "Role": "${ROLE_ARN}",
+  "Command": {
+    "Name": "glueetl",
+    "ScriptLocation": "${S3_SCRIPT_PATH}",
+    "PythonVersion": "3"
+  },
+  "GlueVersion": "${GLUE_VERSION}",
+  "WorkerType": "${WORKER_TYPE}",
+  "NumberOfWorkers": ${NUMBER_OF_WORKERS},
+  "Timeout": ${TIMEOUT_MINUTES},
+  "ExecutionProperty": {
+    "MaxConcurrentRuns": ${MAX_CONCURRENT_RUNS}
+  },
+  "DefaultArguments": {
+    "--job-language": "python",
+    "--BUCKET": "${BUCKET}",
+    "--YEAR": "${DEFAULT_YEAR}",
+    "--MONTH": "${DEFAULT_MONTH}"
+  }
+}
+EOF
+)
+
 echo "Checking if Glue job already exists..."
+
 if aws glue get-job --job-name "${JOB_NAME}" --region "${AWS_REGION}" >/dev/null 2>&1; then
   echo "Glue job exists. Updating job..."
 
   aws glue update-job \
     --job-name "${JOB_NAME}" \
     --region "${AWS_REGION}" \
-    --job-update "{
-      \"Role\": \"${ROLE_ARN}\",
-      \"Command\": {
-        \"Name\": \"glueetl\",
-        \"ScriptLocation\": \"${S3_SCRIPT_PATH}\",
-        \"PythonVersion\": \"3\"
-      },
-      \"GlueVersion\": \"${GLUE_VERSION}\",
-      \"WorkerType\": \"${WORKER_TYPE}\",
-      \"NumberOfWorkers\": ${NUMBER_OF_WORKERS},
-      \"Timeout\": ${TIMEOUT_MINUTES},
-      \"DefaultArguments\": {
-        \"--job-language\": \"python\",
-        \"--BUCKET\": \"${BUCKET}\",
-        \"--YEAR\": \"${DEFAULT_YEAR}\",
-        \"--MONTH\": \"${DEFAULT_MONTH}\"
-      }
-    }"
+    --job-update "${JOB_CONFIG}"
 
   echo "Glue job updated successfully."
 else
@@ -77,6 +88,9 @@ else
     --worker-type "${WORKER_TYPE}" \
     --number-of-workers "${NUMBER_OF_WORKERS}" \
     --timeout "${TIMEOUT_MINUTES}" \
+    --execution-property "{
+      \"MaxConcurrentRuns\": ${MAX_CONCURRENT_RUNS}
+    }" \
     --default-arguments "{
       \"--job-language\": \"python\",
       \"--BUCKET\": \"${BUCKET}\",
