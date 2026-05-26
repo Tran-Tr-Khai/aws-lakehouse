@@ -2,17 +2,21 @@
 
 set -euo pipefail
 
-BUCKET_NAME="nyc-taxi-lakehouse-tntk"
-LANDING_DIR="data/landing"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+BUCKET_NAME="${NYCTX_S3_BUCKET:-nyc-taxi-lakehouse-tntk}"
+LANDING_DIR="${PROJECT_ROOT}/data/landing"
 
 MONTHS_FILE=""
 YEAR_MONTHS=()
 WITH_ZONE_LOOKUP=false
+FORCE=false
 
 usage() {
   echo "Usage:"
-  echo "  $0 --year-months 2024-01 2020-04 [--with-zone-lookup]"
-  echo "  $0 --months-file config/recovery_sample_months.txt [--with-zone-lookup]"
+  echo "  $0 --year-months 2024-01 2020-04 [--with-zone-lookup] [--force]"
+  echo "  $0 --months-file config/recovery_sample_months.txt [--with-zone-lookup] [--force]"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -32,6 +36,10 @@ while [[ $# -gt 0 ]]; do
       WITH_ZONE_LOOKUP=true
       shift
       ;;
+    --force)
+      FORCE=true
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -45,6 +53,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -n "${MONTHS_FILE}" ]]; then
+  if [[ "${MONTHS_FILE}" != /* ]]; then
+    MONTHS_FILE="${PROJECT_ROOT}/${MONTHS_FILE}"
+  fi
+
   if [[ ! -f "${MONTHS_FILE}" ]]; then
     echo "ERROR: Months file not found: ${MONTHS_FILE}"
     exit 1
@@ -80,7 +92,11 @@ if [[ "${WITH_ZONE_LOOKUP}" == true ]]; then
 
   echo ""
   echo "[UPLOAD] Zone lookup"
-  aws s3 cp "${LOCAL_LOOKUP_FILE}" "${S3_LOOKUP_PATH}"
+  if [[ "${FORCE}" == false ]] && aws s3 ls "${S3_LOOKUP_PATH}" >/dev/null 2>&1; then
+    echo "[SKIP] S3 object already exists: ${S3_LOOKUP_PATH}"
+  else
+    aws s3 cp "${LOCAL_LOOKUP_FILE}" "${S3_LOOKUP_PATH}"
+  fi
 fi
 
 for YEAR_MONTH in "${YEAR_MONTHS[@]}"; do
@@ -110,6 +126,11 @@ for YEAR_MONTH in "${YEAR_MONTHS[@]}"; do
   echo "[UPLOAD] ${YEAR_MONTH}"
   echo "Local: ${LOCAL_TRIP_FILE}"
   echo "S3:    ${S3_TRIP_PATH}"
+
+  if [[ "${FORCE}" == false ]] && aws s3 ls "${S3_TRIP_PATH}" >/dev/null 2>&1; then
+    echo "[SKIP] S3 object already exists: ${S3_TRIP_PATH}"
+    continue
+  fi
 
   aws s3 cp "${LOCAL_TRIP_FILE}" "${S3_TRIP_PATH}"
 done

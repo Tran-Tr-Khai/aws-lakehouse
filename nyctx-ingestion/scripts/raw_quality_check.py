@@ -12,8 +12,15 @@ from nyctx_ingestion.quality import run_raw_quality_check
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 LANDING_DIR = PROJECT_ROOT / "data" / "landing"
-QUALITY_DIR = PROJECT_ROOT / "data" / "quality" / "bronze_profile"
+QUALITY_DIR = PROJECT_ROOT / "data" / "quality" / "local_profile"
 LOG_DIR = PROJECT_ROOT / "logs"
+
+
+def resolve_project_path(path: Path) -> Path:
+    if path.is_absolute():
+        return path
+
+    return PROJECT_ROOT / path
 
 
 def parse_year_month(value: str) -> tuple[int, int]:
@@ -96,7 +103,9 @@ def build_profile_plan(args: argparse.Namespace) -> list[tuple[int, int]]:
         year_month_values.extend(args.year_months)
 
     if args.months_file:
-        year_month_values.extend(load_year_months_from_file(args.months_file))
+        year_month_values.extend(
+            load_year_months_from_file(resolve_project_path(args.months_file))
+        )
 
     if year_month_values:
         return [parse_year_month(value) for value in year_month_values]

@@ -7,7 +7,15 @@ import requests
 BASE_URL = "https://d37ci6vzurychx.cloudfront.net/trip-data"
 ZONE_LOOKUP_URL = "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv"
 
-LANDING_DIR = Path("data/landing")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+LANDING_DIR = PROJECT_ROOT / "data" / "landing"
+
+
+def resolve_project_path(path: Path) -> Path:
+    if path.is_absolute():
+        return path
+
+    return PROJECT_ROOT / path
 
 
 def download_file(url: str, output_path: Path) -> None:
@@ -133,7 +141,9 @@ def build_download_plan(args: argparse.Namespace) -> list[tuple[int, int]]:
         year_month_values.extend(args.year_months)
 
     if args.months_file:
-        year_month_values.extend(load_year_months_from_file(args.months_file))
+        year_month_values.extend(
+            load_year_months_from_file(resolve_project_path(args.months_file))
+        )
 
     if year_month_values:
         return [parse_year_month(value) for value in year_month_values]

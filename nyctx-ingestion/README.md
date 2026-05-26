@@ -25,7 +25,7 @@ src/
 uv run python nyctx-ingestion/scripts/download.py --year 2024 --months 1 2 3 --with-zone-lookup
 
 # Upload to S3
-bash nyctx-ingestion/scripts/upload_to_s3.sh
+bash nyctx-ingestion/scripts/upload_to_s3.sh --year-months 2024-01 --with-zone-lookup
 
 # Profile quality
 uv run python nyctx-ingestion/scripts/raw_quality_check.py --year 2024 --month 1
