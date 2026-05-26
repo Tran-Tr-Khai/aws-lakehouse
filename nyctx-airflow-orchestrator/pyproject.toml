@@ -1,0 +1,10 @@
+[project]
+name = "nyctx-airflow-orchestrator"
+version = "0.1.0"
+description = "Airflow orchestration for the NYC Taxi AWS Lakehouse pipeline"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = []
+
+[tool.uv]
+package = false
