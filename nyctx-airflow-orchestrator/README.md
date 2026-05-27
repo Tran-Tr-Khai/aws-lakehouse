@@ -97,6 +97,17 @@ transform_silver      skips Silver month partitions that already have parquet ou
 To intentionally rerun and overwrite S3/Glue outputs, run the scripts manually
 with `--force`. Keep the DAG default skip behavior for normal batch operation.
 
+Quality profiling in the Airflow DAG writes compact summary artifacts only:
+
+```text
+data/quality/local_profile/bronze_quality_summary.csv
+data/quality/local_profile/bronze_quality_summary.md
+```
+
+Detailed profiling CSVs are intentionally disabled in the DAG to avoid noisy
+local artifacts. Use `raw_quality_check.py --write-details` manually when you
+need to inspect distributions, null checks, or detailed quality checks.
+
 ## Debug Logs
 
 Start with the Airflow UI:
