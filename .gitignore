@@ -6,6 +6,11 @@ __pycache__/
 data/
 logs/
 
+nyctx-dbt-transformer/logs/
+nyctx-dbt-transformer/target/
+nyctx-dbt-transformer/dbt_packages/
+nyctx-dbt-transformer/.user.yml
+
 .env
 *.env
 .DS_Store
