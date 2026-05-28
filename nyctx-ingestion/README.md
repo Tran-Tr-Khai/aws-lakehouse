@@ -31,4 +31,21 @@ bash nyctx-ingestion/scripts/upload_to_s3.sh --year-months 2024-01 --with-zone-l
 uv run python nyctx-ingestion/scripts/raw_quality_check.py --year 2024 --month 1
 ```
 
+By default, `raw_quality_check.py` writes only the compact summary files:
+
+```text
+data/quality/local_profile/bronze_quality_summary.csv
+data/quality/local_profile/bronze_quality_summary.md
+```
+
+Detailed per-check CSV files are optional and intended for deeper profiling
+during development:
+
+```bash
+uv run python nyctx-ingestion/scripts/raw_quality_check.py \
+  --year 2024 \
+  --month 1 \
+  --write-details
+```
+
 > For local exploration and ad-hoc queries, see `sandbox/local_explore.py`.

@@ -6,14 +6,12 @@ from typing import Any
 
 import pandas as pd
 
-from nyctx_ingestion.logger import setup_file_logger
 from nyctx_ingestion.quality import run_raw_quality_check
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 LANDING_DIR = PROJECT_ROOT / "data" / "landing"
 QUALITY_DIR = PROJECT_ROOT / "data" / "quality" / "local_profile"
-LOG_DIR = PROJECT_ROOT / "logs"
 
 
 def resolve_project_path(path: Path) -> Path:
@@ -91,6 +89,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         required=False,
         help="Text file containing YYYY-MM values, one per line.",
+    )
+
+    parser.add_argument(
+        "--write-details",
+        action="store_true",
+        help="Write detailed per-check CSV files under data/quality/local_profile.",
     )
 
     return parser.parse_args()
@@ -185,7 +189,7 @@ def build_month_summary_row(
     year: int,
     month: int,
     trip_file: Path,
-    output_dir: Path,
+    details_output_dir: Path | None,
     profile_results: dict[str, pd.DataFrame],
     generated_files: list[str],
 ) -> dict[str, Any]:
@@ -210,7 +214,7 @@ def build_month_summary_row(
         "min_dropoff_datetime": min_dropoff,
         "max_dropoff_datetime": max_dropoff,
         "input_file": str(trip_file),
-        "output_dir": str(output_dir),
+        "details_output_dir": str(details_output_dir) if details_output_dir else "",
         "generated_files": ", ".join(generated_files),
     }
 
@@ -245,7 +249,7 @@ def write_master_summary(summary_rows: list[dict[str, Any]]) -> None:
         "warning_issue_count",
         "min_pickup_datetime",
         "max_pickup_datetime",
-        "output_dir",
+        "details_output_dir",
     ]
 
     report_df = summary_df[report_columns].copy()
@@ -262,7 +266,7 @@ def write_master_summary(summary_rows: list[dict[str, Any]]) -> None:
         "## Output Files",
         "",
         f"- CSV summary: `{csv_path}`",
-        "- Detailed CSV outputs are stored under each `year=YYYY/month=MM/` folder.",
+        "- Detailed CSV outputs are only written when `--write-details` is used.",
         "",
     ]
 
@@ -272,41 +276,64 @@ def write_master_summary(summary_rows: list[dict[str, Any]]) -> None:
     print(f"[SUMMARY] {md_path}")
 
 
-def profile_month(year: int, month: int) -> dict[str, Any]:
+def profile_month(year: int, month: int, write_details: bool) -> dict[str, Any]:
     month_str = f"{month:02d}"
     period = f"{year}-{month_str}"
 
     trip_file = get_trip_file(year, month)
-    output_dir = get_output_dir(year, month)
-    output_dir.mkdir(parents=True, exist_ok=True)
 
     if not trip_file.exists():
         raise FileNotFoundError(f"Trip file not found: {trip_file}")
 
-    log_file = LOG_DIR / f"raw_quality_check_{year}_{month_str}.log"
-    logger = setup_file_logger(f"raw_quality_check_{year}_{month_str}", log_file)
-
-    logger.info("=== BRONZE LOCAL PROFILING ===")
-    logger.info("Period: %s", period)
-    logger.info("Input file: %s", trip_file)
-    logger.info("Output dir: %s", output_dir)
+    print("[INFO] step=profile_bronze status=started")
+    print(f"[INFO] period={period}")
+    print(f"[INFO] input_path={trip_file}")
+    print(f"[INFO] write_details={str(write_details).lower()}")
 
     profile_results = run_raw_quality_check(trip_file)
-    generated_files = write_csv_outputs(profile_results, output_dir)
+    generated_files: list[str] = []
+    details_output_dir: Path | None = None
 
-    for file_name in generated_files:
-        logger.info("Generated CSV: %s", output_dir / file_name)
+    if write_details:
+        details_output_dir = get_output_dir(year, month)
+        details_output_dir.mkdir(parents=True, exist_ok=True)
+        generated_files = write_csv_outputs(profile_results, details_output_dir)
+
+        for file_name in generated_files:
+            print(f"[INFO] detail_output={details_output_dir / file_name}")
 
     summary_row = build_month_summary_row(
         year=year,
         month=month,
         trip_file=trip_file,
-        output_dir=output_dir,
+        details_output_dir=details_output_dir,
         profile_results=profile_results,
         generated_files=generated_files,
     )
 
-    logger.info("Bronze profiling completed successfully for %s.", period)
+    print(
+        "[INFO] "
+        f"period={period} "
+        f"total_rows={summary_row['total_rows']} "
+        f"critical_issue_count={summary_row['critical_issue_count']} "
+        f"warning_issue_count={summary_row['warning_issue_count']}"
+    )
+
+    if summary_row["critical_issue_count"]:
+        print(
+            "[WARNING] "
+            f"period={period} "
+            f"critical_issue_count={summary_row['critical_issue_count']}"
+        )
+
+    if summary_row["warning_issue_count"]:
+        print(
+            "[WARNING] "
+            f"period={period} "
+            f"warning_issue_count={summary_row['warning_issue_count']}"
+        )
+
+    print("[INFO] step=profile_bronze status=completed")
 
     return summary_row
 
@@ -316,12 +343,13 @@ def main() -> None:
     profile_plan = build_profile_plan(args)
 
     print(f"[PLAN] {len(profile_plan)} month(s) to profile")
+    print(f"[INFO] write_details={str(args.write_details).lower()}")
 
     summary_rows: list[dict[str, Any]] = []
 
     for year, month in profile_plan:
         print(f"[PROFILE] {year}-{month:02d}")
-        summary_rows.append(profile_month(year, month))
+        summary_rows.append(profile_month(year, month, args.write_details))
 
     write_master_summary(summary_rows)
 
