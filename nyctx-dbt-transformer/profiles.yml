@@ -1,0 +1,13 @@
+nyc_taxi_lakehouse:
+  target: dev
+  outputs:
+    dev:
+      type: athena
+      database: awsdatacatalog
+      schema: "{{ env_var('NYCTX_ATHENA_DATABASE', 'nyc_taxi_lakehouse') }}"
+      region_name: "{{ env_var('AWS_DEFAULT_REGION', 'us-east-1') }}"
+      s3_staging_dir: "{{ env_var('NYCTX_ATHENA_OUTPUT_LOCATION', 's3://nyc-taxi-lakehouse-tntk/athena-results/') }}"
+      s3_data_dir: "{{ env_var('NYCTX_DBT_GOLD_S3_BASE', 's3://nyc-taxi-lakehouse-tntk/gold') }}"
+      work_group: "{{ env_var('NYCTX_ATHENA_WORKGROUP', 'wg_nyc_taxi_lakehouse') }}"
+      aws_profile_name: "{{ env_var('AWS_PROFILE', 'default') }}"
+      threads: 4

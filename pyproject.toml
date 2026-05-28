@@ -13,4 +13,5 @@ package = false
 members = [
     "nyctx-ingestion",
     "nyctx-airflow-orchestrator",
+    "nyctx-dbt-transformer",
 ]
