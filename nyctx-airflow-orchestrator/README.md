@@ -19,6 +19,7 @@ The image installs:
 - `nyctx-ingestion` as an editable package
 - `apache-airflow-providers-amazon`
 - `awscli`
+- `dbt-core` and `dbt-athena-community` in an isolated dbt virtualenv
 
 Runtime containers mount the repository at `/opt/airflow/project`, so DAG tasks
 can call the existing project scripts without copying data into the image.
@@ -50,6 +51,9 @@ NYCTX_ATHENA_WORKGROUP=wg_nyc_taxi_lakehouse
 NYCTX_ATHENA_OUTPUT_LOCATION=s3://nyc-taxi-lakehouse-tntk/athena-results/
 NYCTX_ATHENA_DATABASE=nyc_taxi_lakehouse
 NYCTX_ATHENA_SILVER_TABLE=silver_yellow_taxi
+NYCTX_DBT_ATHENA_WORKGROUP=wg_nyc_taxi_dbt
+NYCTX_DBT_ATHENA_OUTPUT_LOCATION=s3://nyc-taxi-lakehouse-tntk/athena-results/dbt/
+NYCTX_DBT_GOLD_S3_BASE=s3://nyc-taxi-lakehouse-tntk/gold
 ```
 
 The compose file mounts `${HOME}/.aws` into the Airflow containers. Make sure
@@ -88,9 +92,28 @@ upload Bronze files to S3
 run Glue Silver for all months in config/recovery_sample_months.txt
 create/update Athena Silver catalog metadata
 validate Silver partitions with Athena row-count checks
+optionally build dbt Gold marts
 ```
 
-Unpause the DAG in the UI and trigger it manually.
+Unpause the DAG in the UI and trigger it manually. Gold is protected by a
+metadata/S3 skip check. By default, Airflow calls the dbt Gold task, but the
+script skips without running Athena queries when required Gold tables and
+monthly `fact_trip` partitions already exist.
+
+Use these params when triggering manually:
+
+```json
+{
+  "run_gold": true,
+  "force_gold": false,
+  "run_dbt_tests": true
+}
+```
+
+Set `run_gold=false` to skip the Gold task entirely. Set `force_gold=true` only
+when you intentionally want to rebuild Gold after dbt logic changes or after a
+forced Silver rewrite. Forced Gold runs rebuild selected dbt tables and Athena
+scans data again.
 
 By default the pipeline is idempotent:
 
@@ -119,6 +142,7 @@ Athena integration is limited to production control checks:
 ```text
 setup_athena_catalog     runs idempotent database/table DDL
 validate_silver_athena   verifies each configured month has Silver rows
+build_gold_marts         skips if Gold outputs already exist; runs dbt when missing or forced
 ```
 
 Analytical example queries under `nyctx-athena-catalog/queries/` are not run on

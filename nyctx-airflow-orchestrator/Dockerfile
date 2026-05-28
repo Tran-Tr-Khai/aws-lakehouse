@@ -22,3 +22,12 @@ RUN pip install --no-cache-dir \
     --constraint "${AIRFLOW_CONSTRAINTS_URL}" \
     "apache-airflow-providers-amazon" \
     -e /opt/airflow/project/nyctx-ingestion
+
+ENV DBT_VENV_PATH=/home/airflow/.dbt-venv
+ENV DBT_BIN=/home/airflow/.dbt-venv/bin/dbt
+
+RUN python -m venv "${DBT_VENV_PATH}" \
+    && "${DBT_VENV_PATH}/bin/pip" install --no-cache-dir --upgrade pip \
+    && "${DBT_VENV_PATH}/bin/pip" install --no-cache-dir \
+        "dbt-core>=1.9,<2" \
+        "dbt-athena-community>=1.9,<2"

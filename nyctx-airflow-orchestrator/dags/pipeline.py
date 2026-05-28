@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from airflow import DAG
+from airflow.models.param import Param
 from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
 
@@ -22,11 +23,28 @@ def project_bash(command: str) -> str:
 
 with DAG(
     dag_id="pipeline",
-    description="NYC Taxi Bronze ingestion, quality check, and Silver Glue transform",
+    description="NYC Taxi Bronze ingestion, Silver Glue transform, Athena checks, and optional dbt Gold build",
     start_date=datetime(2026, 1, 1),
     schedule=None,
     catchup=False,
-    tags=["nyc-taxi", "bronze", "silver", "aws"],
+    tags=["nyc-taxi", "bronze", "silver", "gold", "aws"],
+    params={
+        "run_gold": Param(
+            True,
+            type="boolean",
+            description="Check/build dbt Gold models. Existing complete Gold outputs are skipped without Athena scans.",
+        ),
+        "force_gold": Param(
+            False,
+            type="boolean",
+            description="Force rebuild dbt Gold models even when existing Gold outputs look complete.",
+        ),
+        "run_dbt_tests": Param(
+            True,
+            type="boolean",
+            description="Run dbt tests after dbt Gold models are built.",
+        ),
+    },
 ) as dag:
     start = EmptyOperator(task_id="start")
 
@@ -103,6 +121,32 @@ with DAG(
         ),
     )
 
+    build_gold_marts = BashOperator(
+        task_id="build_gold_marts",
+        retries=1,
+        retry_delay=timedelta(minutes=1),
+        bash_command=project_bash(
+            f"""
+            if [[ "{{{{ params.run_gold | lower }}}}" != "true" ]]; then
+              echo "[INFO] step=dbt_gold status=skipped reason=run_gold_param_false"
+              exit 0
+            fi
+
+            DBT_ARGS="--months-file {MONTHS_FILE}"
+
+            if [[ "{{{{ params.force_gold | lower }}}}" == "true" ]]; then
+              DBT_ARGS="${{DBT_ARGS}} --force"
+            fi
+
+            if [[ "{{{{ params.run_dbt_tests | lower }}}}" != "true" ]]; then
+              DBT_ARGS="${{DBT_ARGS}} --skip-tests"
+            fi
+
+            bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh ${{DBT_ARGS}}
+            """
+        ),
+    )
+
     end = EmptyOperator(task_id="end")
 
     (
@@ -113,5 +157,6 @@ with DAG(
         >> transform_silver
         >> setup_athena_catalog
         >> validate_silver_athena
+        >> build_gold_marts
         >> end
     )

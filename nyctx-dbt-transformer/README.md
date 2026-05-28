@@ -74,9 +74,16 @@ enabled later:
 
 ```bash
 bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector dashboard_daily_revenue
+bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --months-file config/recovery_sample_months.txt
+bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --force
 bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector all_gold --test-select marts
 bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector dashboard_daily_revenue --skip-tests
 ```
+
+The script is idempotent by default. Before running dbt, it checks Glue table
+locations and S3 objects for the required Gold tables and `fact_trip` partitions
+listed in the months file. If Gold is already complete, it skips without running
+Athena queries. Use `--force` when you intentionally need to rebuild Gold.
 
 ## Gold S3 Location
 
