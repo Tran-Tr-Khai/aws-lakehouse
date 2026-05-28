@@ -35,9 +35,9 @@ secrets.
 ```bash
 export AWS_DEFAULT_REGION=us-east-1
 export AWS_PROFILE=default
-export NYCTX_ATHENA_WORKGROUP=wg_nyc_taxi_lakehouse
-export NYCTX_ATHENA_OUTPUT_LOCATION=s3://nyc-taxi-lakehouse-tntk/athena-results/
 export NYCTX_ATHENA_DATABASE=nyc_taxi_lakehouse
+export NYCTX_DBT_ATHENA_WORKGROUP=wg_nyc_taxi_dbt
+export NYCTX_DBT_ATHENA_OUTPUT_LOCATION=s3://nyc-taxi-lakehouse-tntk/athena-results/dbt/
 export NYCTX_DBT_GOLD_S3_BASE=s3://nyc-taxi-lakehouse-tntk/gold
 ```
 
@@ -76,6 +76,35 @@ enabled later:
 bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector dashboard_daily_revenue
 bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector all_gold --test-select marts
 bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector dashboard_daily_revenue --skip-tests
+```
+
+## Gold S3 Location
+
+The Gold tables are intended to be written under:
+
+```text
+s3://nyc-taxi-lakehouse-tntk/gold/
+```
+
+Use the dedicated dbt Athena workgroup `wg_nyc_taxi_dbt`. It must have
+"Override client-side settings" disabled so dbt can write CTAS table data to
+the configured Gold S3 prefix. The run script checks this before running dbt.
+
+Manual checks:
+
+```bash
+aws athena get-work-group \
+  --work-group wg_nyc_taxi_dbt \
+  --query 'WorkGroup.Configuration.EnforceWorkGroupConfiguration'
+
+aws glue get-table \
+  --database-name nyc_taxi_lakehouse \
+  --name mart_daily_trip_revenue \
+  --query 'Table.StorageDescriptor.Location' \
+  --output text
+
+aws s3 ls s3://nyc-taxi-lakehouse-tntk/gold/marts/mart_daily_trip_revenue/ \
+  --recursive --summarize
 ```
 
 ## Power BI Model
