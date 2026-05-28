@@ -2,7 +2,7 @@
     materialized='table',
     table_type='hive',
     format='parquet',
-    external_location='s3://nyc-taxi-lakehouse-tntk/gold/core/dim_zone/'
+    external_location=var('gold_s3_base') ~ '/core/dim_zone/'
 ) }}
 
 select

@@ -93,15 +93,36 @@ models:
         tests:
           - not_null
 
+      - name: quarter
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
+                quote: false
+
       - name: month
         tests:
           - not_null
 
-      - name: day
+      - name: month_name
+        tests:
+          - not_null
+
+      - name: day_of_month
         tests:
           - not_null
 
       - name: day_of_week
+        description: Numeric day of week from Athena where Monday is 1 and Sunday is 7.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7]
+                quote: false
+
+      - name: day_of_week_name
         tests:
           - not_null
           - accepted_values:
@@ -145,6 +166,10 @@ models:
               arguments:
                 to: ref('dim_hour')
                 field: hour_key
+
+      - name: pickup_day_of_week
+        tests:
+          - not_null
 
       - name: vendor_id
         tests:
@@ -201,3 +226,14 @@ models:
       - name: total_amount
         tests:
           - not_null
+
+      - name: has_warning_quality_issue
+        description: True when the trip retained for analytics still has non-critical quality warnings.
+        tests:
+          - not_null
+
+      - name: avg_speed_mph
+        description: Derived average trip speed from the Silver layer.
+
+      - name: fare_per_minute
+        description: Derived fare per minute from the Silver layer.

@@ -1,8 +1,9 @@
 {{ config(
+    enabled=var('enable_optional_marts'),
     materialized='table',
     table_type='hive',
     format='parquet',
-    external_location='s3://nyc-taxi-lakehouse-tntk/gold/marts/mart_airport_trip_summary/'
+    external_location=var('gold_s3_base') ~ '/marts/mart_airport_trip_summary/'
 ) }}
 
 with trip_with_zones as (

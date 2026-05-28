@@ -1,12 +1,11 @@
 {{ config(
     materialized='table',
     table_type='hive',
-    format='parquet', 
-    external_location='s3://nyc-taxi-lakehouse-tntk/gold/core/dim_rate_code/'
+    format='parquet',
+    external_location=var('gold_s3_base') ~ '/core/dim_rate_code/'
 ) }}
 
-select *
-from (
+with rate_codes(ratecode_id, ratecode_name) as (
     values
         (1, 'Standard rate'),
         (2, 'JFK'),
@@ -15,4 +14,9 @@ from (
         (5, 'Negotiated fare'),
         (6, 'Group ride'),
         (99, 'Unknown')
-) as t(ratecode_id, ratecode_name)
+)
+
+select
+    ratecode_id,
+    ratecode_name
+from rate_codes

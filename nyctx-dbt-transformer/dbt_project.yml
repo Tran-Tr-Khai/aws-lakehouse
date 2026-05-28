@@ -1,5 +1,6 @@
 name: nyc_taxi_lakehouse
 version: "1.0.0"
+config-version: 2
 
 profile: nyc_taxi_lakehouse
 
@@ -7,15 +8,19 @@ model-paths: ["models"]
 macro-paths: ["macros"]
 test-paths: ["tests"]
 
+vars:
+  gold_s3_base: "{{ env_var('NYCTX_DBT_GOLD_S3_BASE', 's3://nyc-taxi-lakehouse-tntk/gold') }}"
+  enable_optional_marts: false
+
 models:
   nyc_taxi_lakehouse:
     core:
       +materialized: table
       +table_type: hive
       +format: parquet
-      +s3_data_dir: s3://nyc-taxi-lakehouse-tntk/gold/core/
+      +s3_data_dir: "{{ env_var('NYCTX_DBT_GOLD_S3_BASE', 's3://nyc-taxi-lakehouse-tntk/gold') }}/core/"
     marts:
       +materialized: table
       +table_type: hive
       +format: parquet
-      +s3_data_dir: s3://nyc-taxi-lakehouse-tntk/gold/marts/
+      +s3_data_dir: "{{ env_var('NYCTX_DBT_GOLD_S3_BASE', 's3://nyc-taxi-lakehouse-tntk/gold') }}/marts/"

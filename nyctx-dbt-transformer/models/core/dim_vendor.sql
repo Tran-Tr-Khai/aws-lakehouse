@@ -1,13 +1,17 @@
 {{ config(
     materialized='table',
     table_type='hive',
-    format='parquet', 
-    external_location='s3://nyc-taxi-lakehouse-tntk/gold/core/dim_vendor/'
+    format='parquet',
+    external_location=var('gold_s3_base') ~ '/core/dim_vendor/'
 ) }}
 
-select *
-from (
+with vendors(vendor_id, vendor_name) as (
     values
         (1, 'Creative Mobile Technologies'),
         (2, 'VeriFone')
-) as t(vendor_id, vendor_name)
+)
+
+select
+    vendor_id,
+    vendor_name
+from vendors

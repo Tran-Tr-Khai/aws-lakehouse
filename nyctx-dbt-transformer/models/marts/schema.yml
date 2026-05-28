@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: mart_daily_trip_revenue
-    description: Daily trip and revenue mart built from fact_trip and dim_date.
+    description: Daily trip and revenue mart for the first Power BI dashboard page. Date attributes live in dim_date.
     columns:
       - name: date_key
         description: Date key in yyyyMMdd format. One row per pickup date.
@@ -26,7 +26,7 @@ models:
         tests:
           - not_null
 
-      - name: total_amount
+      - name: total_revenue
         description: Total trip amount for the date.
         tests:
           - not_null
@@ -40,9 +40,59 @@ models:
         description: Total tip amount for the date.
         tests:
           - not_null
-  
+
+      - name: total_tolls_amount
+        description: Total tolls amount for the date.
+        tests:
+          - not_null
+
+      - name: total_airport_fee
+        description: Total airport fee amount for the date.
+        tests:
+          - not_null
+
+      - name: total_congestion_surcharge
+        description: Total congestion surcharge amount for the date.
+        tests:
+          - not_null
+
+      - name: avg_total_amount
+        description: Average trip total amount for the date.
+        tests:
+          - not_null
+
+      - name: avg_trip_distance
+        description: Average trip distance for the date.
+        tests:
+          - not_null
+
+      - name: avg_trip_duration_minutes
+        description: Average trip duration for the date.
+        tests:
+          - not_null
+
+      - name: credit_card_trips
+        description: Trip count paid by credit card.
+        tests:
+          - not_null
+
+      - name: cash_trips
+        description: Trip count paid by cash.
+        tests:
+          - not_null
+
+      - name: airport_fee_trips
+        description: Trip count with a positive airport fee.
+        tests:
+          - not_null
+
+      - name: warning_trip_count
+        description: Trip count retained for analytics but marked with non-critical warning flags.
+        tests:
+          - not_null
+
   - name: mart_hourly_demand
-    description: Hourly demand mart built from fact_trip, dim_date, and dim_hour.
+    description: Optional mart built from fact_trip, dim_date, and dim_hour. Disabled by default until the dashboard needs it.
     columns:
       - name: date_key
         description: Date key in yyyyMMdd format.
@@ -79,7 +129,7 @@ models:
                 quote: true
 
   - name: mart_pickup_zone_performance
-    description: Pickup zone performance mart built from fact_trip and dim_zone.
+    description: Optional mart built from fact_trip and dim_zone. Disabled by default until the dashboard needs it.
     columns:
       - name: pickup_location_id
         description: Pickup taxi zone location identifier.
@@ -113,7 +163,7 @@ models:
           - not_null
 
   - name: mart_payment_behavior
-    description: Payment behavior mart built from fact_trip and dim_payment_type.
+    description: Optional mart built from fact_trip and dim_payment_type. Disabled by default until the dashboard needs it.
     columns:
       - name: payment_type_id
         description: Payment type identifier.
@@ -150,7 +200,7 @@ models:
         tests:
           - not_null
   - name: mart_airport_trip_summary
-    description: Airport trip summary mart built from fact_trip and dim_zone.
+    description: Optional airport trip summary mart built from fact_trip and dim_zone. Disabled by default until the dashboard needs it.
     columns:
       - name: airport_trip_type
         description: Airport trip category.
