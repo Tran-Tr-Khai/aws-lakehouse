@@ -17,6 +17,10 @@ x-airflow-common:
     AWS_PROFILE: ${AWS_PROFILE:-default}
     NYCTX_S3_BUCKET: ${NYCTX_S3_BUCKET:-nyc-taxi-lakehouse-tntk}
     NYCTX_GLUE_JOB_NAME: ${NYCTX_GLUE_JOB_NAME:-glue-silver-yellow-taxi}
+    NYCTX_ATHENA_WORKGROUP: ${NYCTX_ATHENA_WORKGROUP:-wg_nyc_taxi_lakehouse}
+    NYCTX_ATHENA_OUTPUT_LOCATION: ${NYCTX_ATHENA_OUTPUT_LOCATION:-s3://nyc-taxi-lakehouse-tntk/athena-results/}
+    NYCTX_ATHENA_DATABASE: ${NYCTX_ATHENA_DATABASE:-nyc_taxi_lakehouse}
+    NYCTX_ATHENA_SILVER_TABLE: ${NYCTX_ATHENA_SILVER_TABLE:-silver_yellow_taxi}
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs

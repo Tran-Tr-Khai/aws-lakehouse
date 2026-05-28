@@ -46,6 +46,10 @@ AWS_DEFAULT_REGION=us-east-1
 AWS_PROFILE=default
 NYCTX_S3_BUCKET=nyc-taxi-lakehouse-tntk
 NYCTX_GLUE_JOB_NAME=glue-silver-yellow-taxi
+NYCTX_ATHENA_WORKGROUP=wg_nyc_taxi_lakehouse
+NYCTX_ATHENA_OUTPUT_LOCATION=s3://nyc-taxi-lakehouse-tntk/athena-results/
+NYCTX_ATHENA_DATABASE=nyc_taxi_lakehouse
+NYCTX_ATHENA_SILVER_TABLE=silver_yellow_taxi
 ```
 
 The compose file mounts `${HOME}/.aws` into the Airflow containers. Make sure
@@ -82,6 +86,8 @@ download local
 local raw quality check
 upload Bronze files to S3
 run Glue Silver for all months in config/recovery_sample_months.txt
+create/update Athena Silver catalog metadata
+validate Silver partitions with Athena row-count checks
 ```
 
 Unpause the DAG in the UI and trigger it manually.
@@ -107,6 +113,17 @@ data/quality/local_profile/bronze_quality_summary.md
 Detailed profiling CSVs are intentionally disabled in the DAG to avoid noisy
 local artifacts. Use `raw_quality_check.py --write-details` manually when you
 need to inspect distributions, null checks, or detailed quality checks.
+
+Athena integration is limited to production control checks:
+
+```text
+setup_athena_catalog     runs idempotent database/table DDL
+validate_silver_athena   verifies each configured month has Silver rows
+```
+
+Analytical example queries under `nyctx-athena-catalog/queries/` are not run on
+every DAG trigger because they are portfolio/BI examples and would add avoidable
+Athena scan cost.
 
 ## Debug Logs
 

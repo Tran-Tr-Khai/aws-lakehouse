@@ -74,6 +74,35 @@ with DAG(
         ),
     )
 
+    setup_athena_catalog = BashOperator(
+        task_id="setup_athena_catalog",
+        retries=1,
+        retry_delay=timedelta(minutes=1),
+        bash_command=project_bash(
+            """
+            bash nyctx-athena-catalog/scripts/run_athena_sql.sh \
+              --file nyctx-athena-catalog/ddl/create_database.sql \
+              --label create_database
+
+            bash nyctx-athena-catalog/scripts/run_athena_sql.sh \
+              --file nyctx-athena-catalog/ddl/create_silver_yellow_taxi.sql \
+              --label create_silver_yellow_taxi
+            """
+        ),
+    )
+
+    validate_silver_athena = BashOperator(
+        task_id="validate_silver_athena",
+        retries=1,
+        retry_delay=timedelta(minutes=1),
+        bash_command=project_bash(
+            f"""
+            bash nyctx-athena-catalog/scripts/validate_silver_partitions.sh \
+              --months-file {MONTHS_FILE}
+            """
+        ),
+    )
+
     end = EmptyOperator(task_id="end")
 
     (
@@ -82,5 +111,7 @@ with DAG(
         >> profile_bronze_local
         >> upload_bronze_to_s3
         >> transform_silver
+        >> setup_athena_catalog
+        >> validate_silver_athena
         >> end
     )

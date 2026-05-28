@@ -41,6 +41,9 @@ queries/
   04_top_pickup_zones.sql
 docs/
   query_cost_guardrails.md
+scripts/
+  run_athena_sql.sh
+  validate_silver_partitions.sh
 ```
 
 ## Create Catalog Objects
@@ -82,6 +85,34 @@ WHERE year = '2024'
 
 Then check Athena Query history and confirm the `Data scanned` value is small.
 
+## Airflow Integration
+
+The Airflow DAG runs only the catalog setup and validation control queries:
+
+```text
+setup_athena_catalog
+validate_silver_athena
+```
+
+`setup_athena_catalog` executes:
+
+```text
+ddl/create_database.sql
+ddl/create_silver_yellow_taxi.sql
+```
+
+`validate_silver_athena` reads `config/recovery_sample_months.txt` and runs one
+partition-filtered row-count query per month:
+
+```sql
+SELECT COUNT(*) AS trip_count
+FROM nyc_taxi_lakehouse.silver_yellow_taxi
+WHERE year = '<YYYY>'
+  AND month = '<MM>';
+```
+
+Each validation query fails the task if the month returns zero rows.
+
 ## Cost Rules
 
 Athena charges by data scanned. Keep queries safe by following these rules:
@@ -103,6 +134,10 @@ See [docs/query_cost_guardrails.md](docs/query_cost_guardrails.md).
 | `02_payment_type_summary.sql` | Single partition aggregation |
 | `03_hourly_demand_pattern.sql` | Single partition aggregation |
 | `04_top_pickup_zones.sql` | Single partition aggregation, `LIMIT 25` |
+
+The query examples are intentionally not part of the Airflow DAG. They are for
+manual validation, portfolio screenshots, BI exploration, or future dbt Gold
+model design.
 
 ## Removed Files
 
