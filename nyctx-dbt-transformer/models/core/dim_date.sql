@@ -19,7 +19,20 @@ select
     year(date) as year,
     quarter(date) as quarter,
     month(date) as month,
-    date_format(cast(date as timestamp), '%M') as month_name,
+    case month(date)
+        when 1 then 'Jan'
+        when 2 then 'Feb'
+        when 3 then 'Mar'
+        when 4 then 'Apr'
+        when 5 then 'May'
+        when 6 then 'Jun'
+        when 7 then 'Jul'
+        when 8 then 'Aug'
+        when 9 then 'Sep'
+        when 10 then 'Oct'
+        when 11 then 'Nov'
+        when 12 then 'Dec'
+    end as month_name,
     day(date) as day_of_month,
     day_of_week(date) as day_of_week,
     date_format(cast(date as timestamp), '%W') as day_of_week_name,
