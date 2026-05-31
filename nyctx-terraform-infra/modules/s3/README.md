@@ -1,8 +1,14 @@
 # S3 Module
 
-Planned for Phase 2.
+This module manages the lakehouse S3 bucket baseline:
 
-This module will manage the lakehouse S3 bucket and standard prefixes for:
+- S3 bucket
+- public access block
+- default server-side encryption with S3-managed keys
+
+Dataset files are not managed by Terraform.
+
+The lakehouse uses these prefix conventions:
 
 - `bronze/`
 - `silver/`
@@ -11,4 +17,5 @@ This module will manage the lakehouse S3 bucket and standard prefixes for:
 - `athena-results/`
 - `scripts/`
 
-Dataset files themselves are not managed by Terraform.
+Those prefixes are created by pipeline tools when data is written. Terraform
+does not upload parquet files or query result objects.

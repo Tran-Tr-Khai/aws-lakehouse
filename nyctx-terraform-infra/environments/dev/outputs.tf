@@ -1,5 +1,5 @@
 output "environment_context" {
-  description = "Current Terraform environment context. Phase 1 only; no AWS resources are created yet."
+  description = "Current Terraform environment context."
   value = {
     project_name                = var.project_name
     environment                 = var.environment
@@ -8,6 +8,15 @@ output "environment_context" {
     athena_workgroup_name       = var.athena_workgroup_name
     dbt_athena_workgroup_name   = var.dbt_athena_workgroup_name
     glue_database_name          = var.glue_database_name
-    creates_aws_resources_today = false
+    creates_aws_resources_today = true
+  }
+}
+
+output "lakehouse_bucket" {
+  description = "Terraform-managed lakehouse S3 bucket details."
+  value = {
+    name   = module.s3.bucket_name
+    arn    = module.s3.bucket_arn
+    s3_uri = module.s3.s3_uri
   }
 }

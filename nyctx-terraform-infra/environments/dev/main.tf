@@ -7,5 +7,9 @@ locals {
   }
 }
 
-# Phase 1 intentionally defines no AWS resources.
-# Phase 2 will add S3 and Athena modules after the target resource names are confirmed.
+module "s3" {
+  source = "../../modules/s3"
+
+  bucket_name   = var.s3_bucket_name
+  force_destroy = var.s3_force_destroy
+}

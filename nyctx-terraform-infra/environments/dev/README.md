@@ -2,9 +2,9 @@
 
 This directory is the Terraform entry point for the local `dev` environment.
 
-Phase 1 is intentionally a scaffold only. It configures Terraform, the AWS
-provider, shared variables, tags, and outputs, but it does not create AWS
-resources yet.
+Phase 1 configured Terraform, the AWS provider, shared variables, tags, and
+outputs. Phase 2 adds the first AWS resource module: the dev S3 lakehouse
+bucket baseline.
 
 ## Phase 0: Terraform Basics
 
@@ -46,10 +46,9 @@ terraform validate
 terraform plan
 ```
 
-Expected Phase 1 behavior:
+Expected behavior:
 
-- `terraform plan` should not propose creating AWS resources.
-- The output should only show `environment_context`.
+- Phase 1: `terraform plan` should not propose creating AWS resources.
+- Phase 2: `terraform plan` should show the S3 bucket baseline resources.
 
-Do not run `terraform apply` until Phase 2 adds real resources and the plan has
-been reviewed.
+Do not run `terraform apply` until the plan has been reviewed.

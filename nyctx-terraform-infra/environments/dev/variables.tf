@@ -28,6 +28,12 @@ variable "s3_bucket_name" {
   default     = "nyc-taxi-lakehouse-tntk-dev"
 }
 
+variable "s3_force_destroy" {
+  description = "Whether Terraform can delete the dev S3 bucket even when it contains objects."
+  type        = bool
+  default     = false
+}
+
 variable "athena_workgroup_name" {
   description = "Primary Athena workgroup name for the dev environment. Used in Phase 2."
   type        = string

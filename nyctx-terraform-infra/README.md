@@ -14,8 +14,8 @@ Phase 3  Add IAM and Glue job resources
 Phase 4  Add Glue Catalog resources where Terraform ownership makes sense
 ```
 
-Phase 1 is implemented as a scaffold only. It is safe to initialize and plan
-because it does not define AWS resources yet.
+Phase 1 is implemented as a scaffold.
+Phase 2 starts with a Terraform-managed dev S3 bucket baseline.
 
 ## Structure
 
@@ -44,9 +44,9 @@ terraform plan
 
 Expected Phase 1 result:
 
-- no AWS resources are created;
-- `terraform plan` should only show the `environment_context` output;
-- `terraform apply` is not needed yet.
+- Phase 1 plans should create no AWS resources;
+- Phase 2 plans should show the dev S3 bucket resources before any apply;
+- do not run `terraform apply` until the plan has been reviewed.
 
 ## Ownership Rule
 

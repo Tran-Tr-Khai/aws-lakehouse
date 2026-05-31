@@ -5,6 +5,7 @@ owner        = "khai"
 
 # Phase 2 will use these names when S3 and Athena resources are added.
 s3_bucket_name            = "nyc-taxi-lakehouse-tntk-dev"
+s3_force_destroy          = false
 athena_workgroup_name     = "wg_nyc_taxi_lakehouse_dev"
 dbt_athena_workgroup_name = "wg_nyc_taxi_dbt_dev"
 
