@@ -12,3 +12,4 @@ athena_force_destroy      = false
 
 # Phase 4 will use this name when Glue Catalog resources are added.
 glue_database_name = "nyc_taxi_lakehouse_dev"
+glue_role_name     = "glue-nyc-taxi-lakehouse-dev-role"

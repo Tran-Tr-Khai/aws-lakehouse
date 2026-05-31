@@ -38,3 +38,11 @@ output "glue_catalog" {
     database_arn  = module.glue.database_arn
   }
 }
+
+output "glue_iam_role" {
+  description = "Terraform-managed IAM role for AWS Glue jobs."
+  value = {
+    role_name = module.iam.glue_role_name
+    role_arn  = module.iam.glue_role_arn
+  }
+}

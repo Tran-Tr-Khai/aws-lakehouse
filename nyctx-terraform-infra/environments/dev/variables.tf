@@ -57,3 +57,9 @@ variable "glue_database_name" {
   type        = string
   default     = "nyc_taxi_lakehouse_dev"
 }
+
+variable "glue_role_name" {
+  description = "IAM role name assumed by dev AWS Glue jobs."
+  type        = string
+  default     = "glue-nyc-taxi-lakehouse-dev-role"
+}

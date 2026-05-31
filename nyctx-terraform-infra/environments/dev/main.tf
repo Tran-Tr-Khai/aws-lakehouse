@@ -29,3 +29,12 @@ module "glue" {
 
   database_name = var.glue_database_name
 }
+
+module "iam" {
+  source = "../../modules/iam"
+
+  glue_role_name       = var.glue_role_name
+  lakehouse_bucket_arn = module.s3.bucket_arn
+  glue_database_arn    = module.glue.database_arn
+  glue_database_name   = module.glue.database_name
+}

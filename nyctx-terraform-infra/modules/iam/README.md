@@ -1,12 +1,16 @@
 # IAM Module
 
-Planned for Phase 3.
+This module manages the IAM role used by AWS Glue jobs.
 
-This module will manage the Glue service role and policies required to:
+Current resources:
 
-- read Bronze data from S3
-- write Silver data to S3
-- read/write Glue Catalog metadata
-- write logs to CloudWatch
+- Glue execution role trusted by `glue.amazonaws.com`
+- Inline policy scoped to the lakehouse S3 bucket
+- Glue Catalog permissions for the environment database
+- CloudWatch Logs write permissions
+
+The module intentionally does not create IAM users or access keys. Long-lived
+access keys can leak through Terraform state and are not needed for this
+lakehouse runtime role.
 
 Policies should stay scoped to the project bucket and required Glue resources.
