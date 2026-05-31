@@ -1,10 +1,13 @@
 # Glue Module
 
-Planned for Phase 3 and Phase 4.
+This module manages Glue Catalog resources for the lakehouse environment.
 
-This module will manage:
+Current resources:
 
 - Glue database
+
+Planned later:
+
 - Glue job definition for the Silver PySpark transform
 - optional Glue Catalog tables after schema ownership is finalized
 

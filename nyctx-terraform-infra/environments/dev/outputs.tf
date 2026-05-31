@@ -30,3 +30,11 @@ output "athena_workgroups" {
     dbt_output_location      = module.athena.dbt_output_location
   }
 }
+
+output "glue_catalog" {
+  description = "Terraform-managed Glue Catalog metadata."
+  value = {
+    database_name = module.glue.database_name
+    database_arn  = module.glue.database_arn
+  }
+}

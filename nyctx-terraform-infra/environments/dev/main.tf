@@ -23,3 +23,9 @@ module "athena" {
   dbt_output_location      = "${module.s3.s3_uri}/athena-results/dbt/"
   force_destroy            = var.athena_force_destroy
 }
+
+module "glue" {
+  source = "../../modules/glue"
+
+  database_name = var.glue_database_name
+}
