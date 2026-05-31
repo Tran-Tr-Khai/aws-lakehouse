@@ -1,0 +1,12 @@
+aws_region   = "us-east-1"
+project_name = "nyc-taxi-lakehouse"
+environment  = "dev"
+owner        = "khai"
+
+# Phase 2 will use these names when S3 and Athena resources are added.
+s3_bucket_name            = "nyc-taxi-lakehouse-tntk-dev"
+athena_workgroup_name     = "wg_nyc_taxi_lakehouse_dev"
+dbt_athena_workgroup_name = "wg_nyc_taxi_dbt_dev"
+
+# Phase 4 will use this name when Glue Catalog resources are added.
+glue_database_name = "nyc_taxi_lakehouse_dev"

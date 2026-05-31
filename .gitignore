@@ -11,6 +11,20 @@ nyctx-dbt-transformer/target/
 nyctx-dbt-transformer/dbt_packages/
 nyctx-dbt-transformer/.user.yml
 
+.terraform/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
 .env
 *.env
 .DS_Store
