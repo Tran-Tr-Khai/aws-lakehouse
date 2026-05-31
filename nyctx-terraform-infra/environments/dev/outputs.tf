@@ -20,3 +20,13 @@ output "lakehouse_bucket" {
     s3_uri = module.s3.s3_uri
   }
 }
+
+output "athena_workgroups" {
+  description = "Terraform-managed Athena workgroups."
+  value = {
+    pipeline_name            = module.athena.pipeline_workgroup_name
+    pipeline_output_location = module.athena.pipeline_output_location
+    dbt_name                 = module.athena.dbt_workgroup_name
+    dbt_output_location      = module.athena.dbt_output_location
+  }
+}

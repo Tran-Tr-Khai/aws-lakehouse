@@ -13,3 +13,13 @@ module "s3" {
   bucket_name   = var.s3_bucket_name
   force_destroy = var.s3_force_destroy
 }
+
+module "athena" {
+  source = "../../modules/athena"
+
+  pipeline_workgroup_name  = var.athena_workgroup_name
+  dbt_workgroup_name       = var.dbt_athena_workgroup_name
+  pipeline_output_location = "${module.s3.s3_uri}/athena-results/"
+  dbt_output_location      = "${module.s3.s3_uri}/athena-results/dbt/"
+  force_destroy            = var.athena_force_destroy
+}

@@ -46,6 +46,12 @@ variable "dbt_athena_workgroup_name" {
   default     = "wg_nyc_taxi_dbt_dev"
 }
 
+variable "athena_force_destroy" {
+  description = "Whether Terraform can delete Athena workgroups that contain saved queries."
+  type        = bool
+  default     = false
+}
+
 variable "glue_database_name" {
   description = "Glue Catalog database name for the dev lakehouse environment. Used in Phase 4."
   type        = string
