@@ -34,8 +34,10 @@ output "athena_workgroups" {
 output "glue_catalog" {
   description = "Terraform-managed Glue Catalog metadata."
   value = {
-    database_name = module.glue.database_name
-    database_arn  = module.glue.database_arn
+    database_name  = module.glue.database_name
+    database_arn   = module.glue.database_arn
+    silver_job     = module.glue.silver_job_name
+    silver_job_arn = module.glue.silver_job_arn
   }
 }
 

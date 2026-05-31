@@ -13,3 +13,12 @@ athena_force_destroy      = false
 # Phase 4 will use this name when Glue Catalog resources are added.
 glue_database_name = "nyc_taxi_lakehouse_dev"
 glue_role_name     = "glue-nyc-taxi-lakehouse-dev-role"
+
+glue_silver_job_name                = "glue-silver-yellow-taxi-dev"
+glue_silver_job_default_year        = "2024"
+glue_silver_job_default_month       = "1"
+glue_silver_job_glue_version        = "4.0"
+glue_silver_job_worker_type         = "G.1X"
+glue_silver_job_number_of_workers   = 2
+glue_silver_job_timeout_minutes     = 15
+glue_silver_job_max_concurrent_runs = 1

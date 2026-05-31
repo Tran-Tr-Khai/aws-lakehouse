@@ -63,3 +63,51 @@ variable "glue_role_name" {
   type        = string
   default     = "glue-nyc-taxi-lakehouse-dev-role"
 }
+
+variable "glue_silver_job_name" {
+  description = "AWS Glue job name for the dev Bronze to Silver Yellow Taxi transform."
+  type        = string
+  default     = "glue-silver-yellow-taxi-dev"
+}
+
+variable "glue_silver_job_default_year" {
+  description = "Default --YEAR argument for the dev Silver Glue job."
+  type        = string
+  default     = "2024"
+}
+
+variable "glue_silver_job_default_month" {
+  description = "Default --MONTH argument for the dev Silver Glue job."
+  type        = string
+  default     = "1"
+}
+
+variable "glue_silver_job_glue_version" {
+  description = "Glue runtime version for the dev Silver Glue job."
+  type        = string
+  default     = "4.0"
+}
+
+variable "glue_silver_job_worker_type" {
+  description = "Glue worker type for the dev Silver Glue job."
+  type        = string
+  default     = "G.1X"
+}
+
+variable "glue_silver_job_number_of_workers" {
+  description = "Number of Glue workers for the dev Silver Glue job."
+  type        = number
+  default     = 2
+}
+
+variable "glue_silver_job_timeout_minutes" {
+  description = "Glue job timeout in minutes for the dev Silver Glue job."
+  type        = number
+  default     = 15
+}
+
+variable "glue_silver_job_max_concurrent_runs" {
+  description = "Maximum concurrent runs for the dev Silver Glue job."
+  type        = number
+  default     = 1
+}
