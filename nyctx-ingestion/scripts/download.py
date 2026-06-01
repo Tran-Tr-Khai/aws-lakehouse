@@ -59,6 +59,16 @@ def download_zone_lookup() -> None:
     download_file(ZONE_LOOKUP_URL, output_path)
 
 
+def download_zone_centroids(force: bool = False) -> None:
+    from build_taxi_zone_centroids import build_taxi_zone_centroids
+
+    build_taxi_zone_centroids(
+        zip_path=LANDING_DIR / "lookup" / "taxi_zones.zip",
+        output_path=LANDING_DIR / "lookup" / "taxi_zone_centroids.csv",
+        force=force,
+    )
+
+
 def parse_year_month(value: str) -> tuple[int, int]:
     if not re.fullmatch(r"\d{4}-\d{2}", value):
         raise ValueError(f"Invalid year-month format: {value}. Expected YYYY-MM.")
@@ -131,6 +141,18 @@ def parse_args() -> argparse.Namespace:
         help="Download taxi zone lookup CSV.",
     )
 
+    parser.add_argument(
+        "--with-zone-centroids",
+        action="store_true",
+        help="Build taxi zone centroid CSV from the official TLC taxi zones shapefile.",
+    )
+
+    parser.add_argument(
+        "--force-reference",
+        action="store_true",
+        help="Regenerate local reference outputs even when files already exist.",
+    )
+
     return parser.parse_args()
 
 
@@ -171,6 +193,20 @@ def main() -> None:
 
     if args.with_zone_lookup:
         download_zone_lookup()
+
+    if args.with_zone_centroids:
+        download_zone_centroids(force=args.force_reference)
+
+    has_month_inputs = bool(args.year_months or args.months_file or (args.year and args.months))
+
+    if not has_month_inputs:
+        if args.with_zone_lookup or args.with_zone_centroids:
+            print("[PLAN] 0 month(s) to download")
+            return
+
+        raise ValueError(
+            "Please provide month inputs or at least one reference download flag."
+        )
 
     download_plan = build_download_plan(args)
 

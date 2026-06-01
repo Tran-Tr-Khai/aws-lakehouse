@@ -7,10 +7,18 @@
 ) }}
 
 select
+    concat(cast(f.pickup_date_key as varchar), '-', cast(z.location_id as varchar)) as pickup_zone_date_key,
+    f.pickup_date_key as date_key,
+    d.date,
+    d.year,
+    d.month,
+
     z.location_id as pickup_location_id,
     z.borough as pickup_borough,
     z.zone as pickup_zone,
     z.service_zone as pickup_service_zone,
+    z.latitude as pickup_latitude,
+    z.longitude as pickup_longitude,
 
     count(f.trip_id) as total_trips,
     sum(f.passenger_count) as total_passengers,
@@ -25,18 +33,32 @@ select
     avg(f.total_amount) as avg_total_amount,
     avg(f.fare_amount) as avg_fare_amount,
     avg(f.tip_amount) as avg_tip_amount,
-    avg(f.tip_rate) as avg_tip_rate,
+    case
+        when sum(f.fare_amount) > 0 then sum(f.tip_amount) / sum(f.fare_amount)
+        else null
+    end as avg_tip_rate,
 
     avg(f.trip_distance) as avg_trip_distance,
     avg(f.trip_duration_minutes) as avg_trip_duration_minutes,
-    avg(f.fare_per_mile) as avg_fare_per_mile
+    case
+        when sum(f.trip_distance) > 0 then sum(f.fare_amount) / sum(f.trip_distance)
+        else null
+    end as avg_fare_per_mile
 
 from {{ ref('fact_trip') }} f
 join {{ ref('dim_zone') }} z
     on f.pickup_location_id = z.location_id
+join {{ ref('dim_date') }} d
+    on f.pickup_date_key = d.date_key
 
 group by
+    f.pickup_date_key,
+    d.date,
+    d.year,
+    d.month,
     z.location_id,
     z.borough,
     z.zone,
-    z.service_zone
+    z.service_zone,
+    z.latitude,
+    z.longitude

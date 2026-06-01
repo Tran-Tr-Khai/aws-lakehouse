@@ -2,17 +2,19 @@
 
 dbt Gold layer for the NYC Taxi Athena lakehouse.
 
-This module is intentionally scoped to the first dashboard milestone:
+This module is scoped to the Power BI dashboard Gold layer:
 
 ```text
 Silver Athena table
 -> Gold core objects
 -> mart_daily_trip_revenue
--> Power BI daily revenue/trip dashboard
+-> optional dashboard marts
+-> Power BI dashboard pages
 ```
 
-The other mart SQL files remain in the project, but they are disabled by default
-until the dashboard requirements need them. This avoids unnecessary Athena scans.
+Optional marts are disabled by default and enabled only by selectors that need
+them. This keeps the first dashboard path cheap while still supporting the final
+Power BI pages.
 
 ## Structure
 
@@ -74,9 +76,12 @@ enabled later:
 
 ```bash
 bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector dashboard_daily_revenue
+bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector dashboard_demand_analysis
+bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector dashboard_market_hotspots
+bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector dashboard_all
 bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --months-file config/recovery_sample_months.txt
 bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --force
-bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector all_gold --test-select marts
+bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector dashboard_all --test-select marts
 bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector dashboard_daily_revenue --skip-tests
 ```
 
@@ -129,11 +134,32 @@ flags should come from `dim_date`.
 ## Optional Marts
 
 Optional marts are disabled by default through `enable_optional_marts: false`.
-To build them later:
+The run script turns this variable on automatically for dashboard selectors that
+need optional marts:
 
 ```bash
-cd nyctx-dbt-transformer
-uv run dbt run --profiles-dir . --vars '{"enable_optional_marts": true}' --select marts
+bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector dashboard_demand_analysis
+bash nyctx-dbt-transformer/scripts/run_dbt_gold.sh --selector dashboard_market_hotspots
 ```
 
 Only enable them when a dashboard page or analysis actually needs them.
+
+## Map-Ready Zones
+
+`dim_zone` joins the TLC zone lookup with a generated centroid reference table:
+
+```text
+reference_taxi_zone_lookup
+reference_taxi_zone_centroids
+-> dim_zone(latitude, longitude)
+```
+
+Generate centroids from the official TLC taxi zone shapefile:
+
+```bash
+uv run --package nyctx-ingestion python nyctx-ingestion/scripts/build_taxi_zone_centroids.py
+```
+
+Power BI should use `dim_zone[latitude]` and `dim_zone[longitude]` for market
+hotspot maps. This avoids ambiguous text geocoding for names like "Midtown
+Center" or "JFK Airport".

@@ -129,13 +129,23 @@ models:
                 quote: true
 
   - name: mart_pickup_zone_performance
-    description: Optional mart built from fact_trip and dim_zone. Disabled by default until the dashboard needs it.
+    description: Optional daily pickup-zone performance mart for the Market Hotspots dashboard page.
     columns:
+      - name: pickup_zone_date_key
+        description: Composite key for one pickup zone on one pickup date.
+        tests:
+          - not_null
+          - unique
+
+      - name: date_key
+        description: Date key in yyyyMMdd format.
+        tests:
+          - not_null
+
       - name: pickup_location_id
         description: Pickup taxi zone location identifier.
         tests:
           - not_null
-          - unique
 
       - name: pickup_borough
         description: Pickup borough.
@@ -146,6 +156,12 @@ models:
         description: Pickup taxi zone name.
         tests:
           - not_null
+
+      - name: pickup_latitude
+        description: WGS84 centroid latitude for map visualizations.
+
+      - name: pickup_longitude
+        description: WGS84 centroid longitude for map visualizations.
 
       - name: total_trips
         description: Total number of valid analytical trips from the pickup zone.

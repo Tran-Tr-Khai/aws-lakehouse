@@ -54,7 +54,8 @@ with DAG(
             f"""
             python nyctx-ingestion/scripts/download.py \
               --months-file {MONTHS_FILE} \
-              --with-zone-lookup
+              --with-zone-lookup \
+              --with-zone-centroids
             """
         ),
     )
@@ -75,7 +76,19 @@ with DAG(
             f"""
             bash nyctx-ingestion/scripts/upload_to_s3.sh \
               --months-file {MONTHS_FILE} \
-              --with-zone-lookup
+              --with-zone-lookup \
+              --with-zone-centroids
+            """
+        ),
+    )
+
+    deploy_glue_script = BashOperator(
+        task_id="deploy_glue_script",
+        retries=1,
+        retry_delay=timedelta(minutes=1),
+        bash_command=project_bash(
+            """
+            bash nyctx-glue-processor/scripts/deploy_glue_job_terraform.sh
             """
         ),
     )
@@ -101,6 +114,14 @@ with DAG(
             bash nyctx-athena-catalog/scripts/run_athena_sql.sh \
               --file nyctx-athena-catalog/ddl/create_database.sql \
               --label create_database
+
+            bash nyctx-athena-catalog/scripts/run_athena_sql.sh \
+              --file nyctx-athena-catalog/ddl/create_reference_taxi_zone_lookup.sql \
+              --label create_reference_taxi_zone_lookup
+
+            bash nyctx-athena-catalog/scripts/run_athena_sql.sh \
+              --file nyctx-athena-catalog/ddl/create_reference_taxi_zone_centroids.sql \
+              --label create_reference_taxi_zone_centroids
 
             bash nyctx-athena-catalog/scripts/run_athena_sql.sh \
               --file nyctx-athena-catalog/ddl/create_silver_yellow_taxi.sql \
@@ -132,7 +153,7 @@ with DAG(
               exit 0
             fi
 
-            DBT_ARGS="--months-file {MONTHS_FILE}"
+            DBT_ARGS="--selector dashboard_all --months-file {MONTHS_FILE}"
 
             if [[ "{{{{ params.force_gold | lower }}}}" == "true" ]]; then
               DBT_ARGS="${{DBT_ARGS}} --force"
@@ -154,6 +175,7 @@ with DAG(
         >> download_raw_sample
         >> profile_bronze_local
         >> upload_bronze_to_s3
+        >> deploy_glue_script
         >> transform_silver
         >> setup_athena_catalog
         >> validate_silver_athena

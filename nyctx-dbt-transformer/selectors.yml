@@ -17,3 +17,40 @@ selectors:
           value: fact_trip
         - method: fqn
           value: mart_daily_trip_revenue
+
+  - name: dashboard_demand_analysis
+    description: Build the Gold objects needed for the Power BI demand analysis dashboard page.
+    definition:
+      union:
+        - method: fqn
+          value: dim_date
+        - method: fqn
+          value: dim_hour
+        - method: fqn
+          value: fact_trip
+        - method: fqn
+          value: mart_hourly_demand
+
+  - name: dashboard_market_hotspots
+    description: Build the Gold objects needed for the Power BI market hotspots dashboard page.
+    definition:
+      union:
+        - method: fqn
+          value: dim_date
+        - method: fqn
+          value: dim_zone
+        - method: fqn
+          value: fact_trip
+        - method: fqn
+          value: mart_pickup_zone_performance
+
+  - name: dashboard_all
+    description: Build all Gold objects currently used by Power BI dashboard pages.
+    definition:
+      union:
+        - method: selector
+          value: dashboard_daily_revenue
+        - method: selector
+          value: dashboard_demand_analysis
+        - method: selector
+          value: dashboard_market_hotspots

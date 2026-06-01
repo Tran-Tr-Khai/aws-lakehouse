@@ -2,13 +2,32 @@ version: 2
 
 models:
   - name: dim_zone
-    description: Taxi zone dimension built from the taxi zone lookup reference table.
+    description: Taxi zone dimension built from TLC lookup and centroid reference tables.
     columns:
       - name: location_id
         description: Unique taxi zone location identifier.
         tests:
           - not_null
           - unique
+
+      - name: borough
+        description: Pickup/dropoff borough for the taxi zone.
+        tests:
+          - not_null
+
+      - name: zone
+        description: Taxi zone name.
+        tests:
+          - not_null
+
+      - name: service_zone
+        description: TLC service zone classification.
+
+      - name: latitude
+        description: WGS84 centroid latitude for map visualizations. Location IDs without a TLC polygon can be null.
+
+      - name: longitude
+        description: WGS84 centroid longitude for map visualizations. Location IDs without a TLC polygon can be null.
 
   - name: dim_payment_type
     description: Payment type dimension for Yellow Taxi trips.

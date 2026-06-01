@@ -7,20 +7,14 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 DBT_PROJECT_DIR="${PROJECT_ROOT}/nyctx-dbt-transformer"
 
 SELECTOR="dashboard_daily_revenue"
-TEST_SELECT="dim_date dim_hour dim_payment_type dim_rate_code dim_vendor mart_daily_trip_revenue"
+TEST_SELECT=""
+TEST_SELECT_EXPLICIT="false"
 MONTHS_FILE="${PROJECT_ROOT}/config/recovery_sample_months.txt"
 RUN_TESTS="true"
 FORCE_RUN="false"
+ENABLE_OPTIONAL_MARTS="false"
 
-GOLD_TABLES=(
-  dim_date
-  dim_hour
-  dim_payment_type
-  dim_rate_code
-  dim_vendor
-  fact_trip
-  mart_daily_trip_revenue
-)
+GOLD_TABLES=()
 
 run_dbt() {
   if [[ -n "${DBT_BIN:-}" && -x "${DBT_BIN}" ]]; then
@@ -84,6 +78,48 @@ glue_table_location() {
     --output text
 }
 
+glue_table_has_column() {
+  local table_name="$1"
+  local column_name="$2"
+
+  aws glue get-table \
+    --database-name "${NYCTX_ATHENA_DATABASE}" \
+    --name "${table_name}" \
+    --query "contains(Table.StorageDescriptor.Columns[].Name, '${column_name}')" \
+    --output text
+}
+
+required_columns_present() {
+  local table_name="$1"
+  local required_columns=()
+  local column_name
+  local has_column
+
+  case "${table_name}" in
+    dim_zone)
+      required_columns=(latitude longitude)
+      ;;
+    mart_pickup_zone_performance)
+      required_columns=(pickup_zone_date_key date_key pickup_latitude pickup_longitude)
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  for column_name in "${required_columns[@]}"; do
+    if ! has_column="$(glue_table_has_column "${table_name}" "${column_name}" 2>/dev/null)"; then
+      echo "[INFO] step=gold_skip_check status=missing_column_check_failed table=${table_name} column=${column_name}"
+      return 1
+    fi
+
+    if [[ "${has_column}" != "True" ]]; then
+      echo "[INFO] step=gold_skip_check status=missing_column table=${table_name} column=${column_name}"
+      return 1
+    fi
+  done
+}
+
 gold_outputs_complete() {
   if ! command -v aws >/dev/null 2>&1; then
     echo "[WARNING] step=gold_skip_check status=skipped reason=aws_cli_not_found"
@@ -112,6 +148,10 @@ gold_outputs_complete() {
 
     if ! s3_prefix_has_objects "${table_location}"; then
       echo "[INFO] step=gold_skip_check status=empty_table table=${table_name} location=${table_location}"
+      return 1
+    fi
+
+    if ! required_columns_present "${table_name}"; then
       return 1
     fi
 
@@ -179,9 +219,12 @@ usage() {
   echo "Examples:"
   echo "  $0"
   echo "  $0 --selector dashboard_daily_revenue"
+  echo "  $0 --selector dashboard_demand_analysis"
+  echo "  $0 --selector dashboard_market_hotspots"
+  echo "  $0 --selector dashboard_all"
   echo "  $0 --months-file config/recovery_sample_months.txt"
   echo "  $0 --force"
-  echo "  $0 --selector all_gold --test-select marts"
+  echo "  $0 --selector dashboard_all --test-select marts"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -192,6 +235,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --test-select)
       TEST_SELECT="$2"
+      TEST_SELECT_EXPLICIT="true"
       shift 2
       ;;
     --months-file)
@@ -218,12 +262,65 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+configure_selector_defaults() {
+  case "${SELECTOR}" in
+    dashboard_daily_revenue)
+      ENABLE_OPTIONAL_MARTS="false"
+      GOLD_TABLES=(dim_date dim_hour dim_payment_type dim_rate_code dim_vendor fact_trip mart_daily_trip_revenue)
+      if [[ "${TEST_SELECT_EXPLICIT}" != "true" ]]; then
+        TEST_SELECT="dim_date dim_hour dim_payment_type dim_rate_code dim_vendor mart_daily_trip_revenue"
+      fi
+      ;;
+    dashboard_demand_analysis)
+      ENABLE_OPTIONAL_MARTS="true"
+      GOLD_TABLES=(dim_date dim_hour fact_trip mart_hourly_demand)
+      if [[ "${TEST_SELECT_EXPLICIT}" != "true" ]]; then
+        TEST_SELECT="dim_date dim_hour mart_hourly_demand"
+      fi
+      ;;
+    dashboard_market_hotspots)
+      ENABLE_OPTIONAL_MARTS="true"
+      GOLD_TABLES=(dim_date dim_zone fact_trip mart_pickup_zone_performance)
+      if [[ "${TEST_SELECT_EXPLICIT}" != "true" ]]; then
+        TEST_SELECT="dim_date dim_zone mart_pickup_zone_performance"
+      fi
+      ;;
+    dashboard_all)
+      ENABLE_OPTIONAL_MARTS="true"
+      GOLD_TABLES=(
+        dim_date
+        dim_hour
+        dim_payment_type
+        dim_rate_code
+        dim_vendor
+        dim_zone
+        fact_trip
+        mart_daily_trip_revenue
+        mart_hourly_demand
+        mart_pickup_zone_performance
+      )
+      if [[ "${TEST_SELECT_EXPLICIT}" != "true" ]]; then
+        TEST_SELECT="dim_date dim_hour dim_payment_type dim_rate_code dim_vendor dim_zone mart_daily_trip_revenue mart_hourly_demand mart_pickup_zone_performance"
+      fi
+      ;;
+    *)
+      ENABLE_OPTIONAL_MARTS="true"
+      GOLD_TABLES=(dim_date dim_hour dim_payment_type dim_rate_code dim_vendor dim_zone fact_trip)
+      if [[ "${TEST_SELECT_EXPLICIT}" != "true" ]]; then
+        TEST_SELECT="${SELECTOR}"
+      fi
+      ;;
+  esac
+}
+
+configure_selector_defaults
+
 export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 export AWS_PROFILE="${AWS_PROFILE:-default}"
-export NYCTX_ATHENA_DATABASE="${NYCTX_ATHENA_DATABASE:-nyc_taxi_lakehouse}"
-export NYCTX_DBT_ATHENA_WORKGROUP="${NYCTX_DBT_ATHENA_WORKGROUP:-wg_nyc_taxi_dbt}"
-export NYCTX_DBT_ATHENA_OUTPUT_LOCATION="${NYCTX_DBT_ATHENA_OUTPUT_LOCATION:-s3://nyc-taxi-lakehouse-tntk/athena-results/dbt/}"
-export NYCTX_DBT_GOLD_S3_BASE="${NYCTX_DBT_GOLD_S3_BASE:-s3://nyc-taxi-lakehouse-tntk/gold}"
+export NYCTX_ATHENA_DATABASE="${NYCTX_ATHENA_DATABASE:-nyc_taxi_lakehouse_dev}"
+export NYCTX_DBT_ATHENA_WORKGROUP="${NYCTX_DBT_ATHENA_WORKGROUP:-wg_nyc_taxi_dbt_dev}"
+export NYCTX_DBT_ATHENA_OUTPUT_LOCATION="${NYCTX_DBT_ATHENA_OUTPUT_LOCATION:-s3://nyc-taxi-lakehouse-tntk-dev/athena-results/dbt/}"
+export NYCTX_DBT_GOLD_S3_BASE="${NYCTX_DBT_GOLD_S3_BASE:-s3://nyc-taxi-lakehouse-tntk-dev/gold}"
 
 if [[ "${MONTHS_FILE}" != /* ]]; then
   MONTHS_FILE="${PROJECT_ROOT}/${MONTHS_FILE}"
@@ -240,6 +337,7 @@ echo "[INFO] selector=${SELECTOR}"
 echo "[INFO] months_file=${MONTHS_FILE}"
 echo "[INFO] run_tests=${RUN_TESTS}"
 echo "[INFO] force=${FORCE_RUN}"
+echo "[INFO] enable_optional_marts=${ENABLE_OPTIONAL_MARTS}"
 echo "========================================"
 
 cd "${DBT_PROJECT_DIR}"
@@ -255,12 +353,14 @@ run_dbt debug --profiles-dir "${DBT_PROJECT_DIR}"
 
 run_dbt run \
   --profiles-dir "${DBT_PROJECT_DIR}" \
-  --selector "${SELECTOR}"
+  --selector "${SELECTOR}" \
+  --vars "{\"enable_optional_marts\": ${ENABLE_OPTIONAL_MARTS}}"
 
 if [[ "${RUN_TESTS}" == "true" ]]; then
   run_dbt test \
     --profiles-dir "${DBT_PROJECT_DIR}" \
     --select ${TEST_SELECT} \
+    --vars "{\"enable_optional_marts\": ${ENABLE_OPTIONAL_MARTS}}" \
     --exclude test_name:relationships
 else
   echo "[INFO] step=dbt_gold_tests status=skipped"

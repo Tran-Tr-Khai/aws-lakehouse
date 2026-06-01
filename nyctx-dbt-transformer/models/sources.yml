@@ -3,10 +3,13 @@ version: 2
 sources:
   - name: nyc_taxi_lakehouse
     database: awsdatacatalog
-    schema: nyc_taxi_lakehouse
+    schema: "{{ env_var('NYCTX_ATHENA_DATABASE', 'nyc_taxi_lakehouse_dev') }}"
     tables:
       - name: silver_yellow_taxi
         description: Cleaned and quality-aware NYC Yellow Taxi trip data from the Silver layer.
 
       - name: reference_taxi_zone_lookup
         description: Taxi zone lookup reference table.
+
+      - name: reference_taxi_zone_centroids
+        description: Taxi zone centroid reference table built from the official TLC taxi zones shapefile.

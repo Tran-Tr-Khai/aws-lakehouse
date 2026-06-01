@@ -5,18 +5,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-BUCKET_NAME="${NYCTX_S3_BUCKET:-nyc-taxi-lakehouse-tntk}"
+BUCKET_NAME="${NYCTX_S3_BUCKET:-nyc-taxi-lakehouse-tntk-dev}"
 LANDING_DIR="${PROJECT_ROOT}/data/landing"
 
 MONTHS_FILE=""
 YEAR_MONTHS=()
 WITH_ZONE_LOOKUP=false
+WITH_ZONE_CENTROIDS=false
 FORCE=false
 
 usage() {
   echo "Usage:"
-  echo "  $0 --year-months 2024-01 2020-04 [--with-zone-lookup] [--force]"
-  echo "  $0 --months-file config/recovery_sample_months.txt [--with-zone-lookup] [--force]"
+  echo "  $0 --year-months 2024-01 2020-04 [--with-zone-lookup] [--with-zone-centroids] [--force]"
+  echo "  $0 --months-file config/recovery_sample_months.txt [--with-zone-lookup] [--with-zone-centroids] [--force]"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -34,6 +35,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --with-zone-lookup)
       WITH_ZONE_LOOKUP=true
+      shift
+      ;;
+    --with-zone-centroids)
+      WITH_ZONE_CENTROIDS=true
       shift
       ;;
     --force)
@@ -83,7 +88,7 @@ echo "========================================"
 
 if [[ "${WITH_ZONE_LOOKUP}" == true ]]; then
   LOCAL_LOOKUP_FILE="${LANDING_DIR}/lookup/taxi_zone_lookup.csv"
-  S3_LOOKUP_PATH="s3://${BUCKET_NAME}/reference/taxi_zone_lookup.csv"
+  S3_LOOKUP_PATH="s3://${BUCKET_NAME}/reference/taxi_zone_lookup/taxi_zone_lookup.csv"
 
   if [[ ! -f "${LOCAL_LOOKUP_FILE}" ]]; then
     echo "ERROR: Lookup file not found: ${LOCAL_LOOKUP_FILE}"
@@ -96,6 +101,25 @@ if [[ "${WITH_ZONE_LOOKUP}" == true ]]; then
     echo "[SKIP] S3 object already exists: ${S3_LOOKUP_PATH}"
   else
     aws s3 cp "${LOCAL_LOOKUP_FILE}" "${S3_LOOKUP_PATH}"
+  fi
+fi
+
+if [[ "${WITH_ZONE_CENTROIDS}" == true ]]; then
+  LOCAL_CENTROIDS_FILE="${LANDING_DIR}/lookup/taxi_zone_centroids.csv"
+  S3_CENTROIDS_PATH="s3://${BUCKET_NAME}/reference/taxi_zone_centroids/taxi_zone_centroids.csv"
+
+  if [[ ! -f "${LOCAL_CENTROIDS_FILE}" ]]; then
+    echo "ERROR: Taxi zone centroid file not found: ${LOCAL_CENTROIDS_FILE}"
+    echo "ERROR: Run download.py with --with-zone-centroids before uploading."
+    exit 1
+  fi
+
+  echo ""
+  echo "[UPLOAD] Zone centroids"
+  if [[ "${FORCE}" == false ]] && aws s3 ls "${S3_CENTROIDS_PATH}" >/dev/null 2>&1; then
+    echo "[SKIP] S3 object already exists: ${S3_CENTROIDS_PATH}"
+  else
+    aws s3 cp "${LOCAL_CENTROIDS_FILE}" "${S3_CENTROIDS_PATH}"
   fi
 fi
 
