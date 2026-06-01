@@ -1,4 +1,4 @@
-CREATE EXTERNAL TABLE IF NOT EXISTS nyc_taxi_lakehouse.silver_yellow_taxi (
+CREATE EXTERNAL TABLE IF NOT EXISTS __NYCTX_ATHENA_DATABASE__.__NYCTX_ATHENA_SILVER_TABLE__ (
     vendor_id INT,
     pickup_datetime TIMESTAMP,
     dropoff_datetime TIMESTAMP,
@@ -48,7 +48,7 @@ PARTITIONED BY (
     month STRING
 )
 STORED AS PARQUET
-LOCATION 's3://nyc-taxi-lakehouse-tntk/silver/yellow_taxi/'
+LOCATION '__NYCTX_ATHENA_SILVER_LOCATION__'
 TBLPROPERTIES (
     'projection.enabled' = 'true',
     'projection.year.type' = 'integer',
@@ -56,5 +56,5 @@ TBLPROPERTIES (
     'projection.year.digits' = '4',
     'projection.month.type' = 'enum',
     'projection.month.values' = '01,02,03,04,05,06,07,08,09,10,11,12',
-    'storage.location.template' = 's3://nyc-taxi-lakehouse-tntk/silver/yellow_taxi/year=${year}/month=${month}/'
+    'storage.location.template' = '__NYCTX_ATHENA_SILVER_LOCATION__year=${year}/month=${month}/'
 );

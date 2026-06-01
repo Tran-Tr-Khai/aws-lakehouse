@@ -5,8 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 AWS_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}"
-BUCKET="${NYCTX_S3_BUCKET:-nyc-taxi-lakehouse-tntk}"
-JOB_NAME="${NYCTX_GLUE_JOB_NAME:-glue-silver-yellow-taxi}"
+BUCKET="${NYCTX_S3_BUCKET:-nyc-taxi-lakehouse-tntk-dev}"
+JOB_NAME="${NYCTX_GLUE_JOB_NAME:-glue-silver-yellow-taxi-dev}"
 START_RETRIES="${NYCTX_GLUE_START_RETRIES:-10}"
 START_RETRY_SECONDS="${NYCTX_GLUE_START_RETRY_SECONDS:-30}"
 

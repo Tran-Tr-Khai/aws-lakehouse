@@ -4,11 +4,11 @@ nyc_taxi_lakehouse:
     dev:
       type: athena
       database: awsdatacatalog
-      schema: "{{ env_var('NYCTX_ATHENA_DATABASE', 'nyc_taxi_lakehouse') }}"
+      schema: "{{ env_var('NYCTX_ATHENA_DATABASE', 'nyc_taxi_lakehouse_dev') }}"
       region_name: "{{ env_var('AWS_DEFAULT_REGION', 'us-east-1') }}"
-      s3_staging_dir: "{{ env_var('NYCTX_DBT_ATHENA_OUTPUT_LOCATION', 's3://nyc-taxi-lakehouse-tntk/athena-results/dbt/') }}"
-      s3_data_dir: "{{ env_var('NYCTX_DBT_GOLD_S3_BASE', 's3://nyc-taxi-lakehouse-tntk/gold') }}"
+      s3_staging_dir: "{{ env_var('NYCTX_DBT_ATHENA_OUTPUT_LOCATION', 's3://nyc-taxi-lakehouse-tntk-dev/athena-results/dbt/') }}"
+      s3_data_dir: "{{ env_var('NYCTX_DBT_GOLD_S3_BASE', 's3://nyc-taxi-lakehouse-tntk-dev/gold') }}"
       s3_data_naming: table_table
-      work_group: "{{ env_var('NYCTX_DBT_ATHENA_WORKGROUP', 'wg_nyc_taxi_dbt') }}"
+      work_group: "{{ env_var('NYCTX_DBT_ATHENA_WORKGROUP', 'wg_nyc_taxi_dbt_dev') }}"
       aws_profile_name: "{{ env_var('AWS_PROFILE', 'default') }}"
       threads: 4

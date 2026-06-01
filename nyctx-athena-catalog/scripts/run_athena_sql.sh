@@ -3,12 +3,42 @@
 set -euo pipefail
 
 AWS_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}"
-WORKGROUP="${NYCTX_ATHENA_WORKGROUP:-wg_nyc_taxi_lakehouse}"
-OUTPUT_LOCATION="${NYCTX_ATHENA_OUTPUT_LOCATION:-s3://nyc-taxi-lakehouse-tntk/athena-results/}"
+S3_BUCKET="${NYCTX_S3_BUCKET:-nyc-taxi-lakehouse-tntk-dev}"
+WORKGROUP="${NYCTX_ATHENA_WORKGROUP:-wg_nyc_taxi_lakehouse_dev}"
+OUTPUT_LOCATION="${NYCTX_ATHENA_OUTPUT_LOCATION:-s3://${S3_BUCKET}/athena-results/}"
+DATABASE="${NYCTX_ATHENA_DATABASE:-nyc_taxi_lakehouse_dev}"
+SILVER_TABLE="${NYCTX_ATHENA_SILVER_TABLE:-silver_yellow_taxi}"
+SILVER_LOCATION="${NYCTX_ATHENA_SILVER_LOCATION:-s3://${S3_BUCKET}/silver/yellow_taxi/}"
+ZONE_LOOKUP_LOCATION="${NYCTX_ZONE_LOOKUP_LOCATION:-s3://${S3_BUCKET}/reference/taxi_zone_lookup/}"
+ZONE_CENTROIDS_LOCATION="${NYCTX_ZONE_CENTROIDS_LOCATION:-s3://${S3_BUCKET}/reference/taxi_zone_centroids/}"
 POLL_SECONDS="${NYCTX_ATHENA_POLL_SECONDS:-5}"
 
 SQL_FILE=""
 LABEL="athena_query"
+
+if [[ "${SILVER_LOCATION}" != */ ]]; then
+  SILVER_LOCATION="${SILVER_LOCATION}/"
+fi
+
+if [[ "${ZONE_LOOKUP_LOCATION}" != */ ]]; then
+  ZONE_LOOKUP_LOCATION="${ZONE_LOOKUP_LOCATION}/"
+fi
+
+if [[ "${ZONE_CENTROIDS_LOCATION}" != */ ]]; then
+  ZONE_CENTROIDS_LOCATION="${ZONE_CENTROIDS_LOCATION}/"
+fi
+
+render_sql_template() {
+  local rendered="$1"
+
+  rendered="${rendered//__NYCTX_ATHENA_DATABASE__/${DATABASE}}"
+  rendered="${rendered//__NYCTX_ATHENA_SILVER_TABLE__/${SILVER_TABLE}}"
+  rendered="${rendered//__NYCTX_ATHENA_SILVER_LOCATION__/${SILVER_LOCATION}}"
+  rendered="${rendered//__NYCTX_ZONE_LOOKUP_LOCATION__/${ZONE_LOOKUP_LOCATION}}"
+  rendered="${rendered//__NYCTX_ZONE_CENTROIDS_LOCATION__/${ZONE_CENTROIDS_LOCATION}}"
+
+  printf '%s' "${rendered}"
+}
 
 usage() {
   echo "Usage:"
@@ -52,12 +82,17 @@ echo "========================================"
 echo "[INFO] step=athena_query status=started"
 echo "[INFO] label=${LABEL}"
 echo "[INFO] sql_file=${SQL_FILE}"
+echo "[INFO] database=${DATABASE}"
+echo "[INFO] silver_table=${SILVER_TABLE}"
+echo "[INFO] silver_location=${SILVER_LOCATION}"
+echo "[INFO] zone_lookup_location=${ZONE_LOOKUP_LOCATION}"
+echo "[INFO] zone_centroids_location=${ZONE_CENTROIDS_LOCATION}"
 echo "[INFO] workgroup=${WORKGROUP}"
 echo "[INFO] output_location=${OUTPUT_LOCATION}"
 echo "[INFO] region=${AWS_REGION}"
 echo "========================================"
 
-query_string="$(<"${SQL_FILE}")"
+query_string="$(render_sql_template "$(<"${SQL_FILE}")")"
 
 query_execution_id=$(
   aws athena start-query-execution \

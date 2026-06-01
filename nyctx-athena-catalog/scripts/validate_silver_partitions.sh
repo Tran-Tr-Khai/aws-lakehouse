@@ -6,9 +6,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 AWS_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}"
-WORKGROUP="${NYCTX_ATHENA_WORKGROUP:-wg_nyc_taxi_lakehouse}"
-OUTPUT_LOCATION="${NYCTX_ATHENA_OUTPUT_LOCATION:-s3://nyc-taxi-lakehouse-tntk/athena-results/}"
-DATABASE="${NYCTX_ATHENA_DATABASE:-nyc_taxi_lakehouse}"
+S3_BUCKET="${NYCTX_S3_BUCKET:-nyc-taxi-lakehouse-tntk-dev}"
+WORKGROUP="${NYCTX_ATHENA_WORKGROUP:-wg_nyc_taxi_lakehouse_dev}"
+OUTPUT_LOCATION="${NYCTX_ATHENA_OUTPUT_LOCATION:-s3://${S3_BUCKET}/athena-results/}"
+DATABASE="${NYCTX_ATHENA_DATABASE:-nyc_taxi_lakehouse_dev}"
 TABLE="${NYCTX_ATHENA_SILVER_TABLE:-silver_yellow_taxi}"
 POLL_SECONDS="${NYCTX_ATHENA_POLL_SECONDS:-5}"
 

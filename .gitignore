@@ -18,6 +18,7 @@ nyctx-dbt-transformer/.user.yml
 *.tfvars
 !*.tfvars.example
 *.tfplan
+tfplan
 crash.log
 crash.*.log
 override.tf

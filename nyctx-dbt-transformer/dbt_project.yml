@@ -9,7 +9,7 @@ macro-paths: ["macros"]
 test-paths: ["tests"]
 
 vars:
-  gold_s3_base: "{{ env_var('NYCTX_DBT_GOLD_S3_BASE', 's3://nyc-taxi-lakehouse-tntk/gold') }}"
+  gold_s3_base: "{{ env_var('NYCTX_DBT_GOLD_S3_BASE', 's3://nyc-taxi-lakehouse-tntk-dev/gold') }}"
   enable_optional_marts: false
 
 models:
@@ -18,9 +18,9 @@ models:
       +materialized: table
       +table_type: hive
       +format: parquet
-      +s3_data_dir: "{{ env_var('NYCTX_DBT_GOLD_S3_BASE', 's3://nyc-taxi-lakehouse-tntk/gold') }}/core/"
+      +s3_data_dir: "{{ env_var('NYCTX_DBT_GOLD_S3_BASE', 's3://nyc-taxi-lakehouse-tntk-dev/gold') }}/core/"
     marts:
       +materialized: table
       +table_type: hive
       +format: parquet
-      +s3_data_dir: "{{ env_var('NYCTX_DBT_GOLD_S3_BASE', 's3://nyc-taxi-lakehouse-tntk/gold') }}/marts/"
+      +s3_data_dir: "{{ env_var('NYCTX_DBT_GOLD_S3_BASE', 's3://nyc-taxi-lakehouse-tntk-dev/gold') }}/marts/"
