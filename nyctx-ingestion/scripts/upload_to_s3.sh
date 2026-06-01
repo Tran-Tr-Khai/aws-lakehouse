@@ -18,6 +18,7 @@ usage() {
   echo "Usage:"
   echo "  $0 --year-months 2024-01 2020-04 [--with-zone-lookup] [--with-zone-centroids] [--force]"
   echo "  $0 --months-file config/recovery_sample_months.txt [--with-zone-lookup] [--with-zone-centroids] [--force]"
+  echo "  $0 --with-zone-lookup --with-zone-centroids [--force]"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -74,7 +75,12 @@ if [[ -n "${MONTHS_FILE}" ]]; then
   done < "${MONTHS_FILE}"
 fi
 
-if [[ ${#YEAR_MONTHS[@]} -eq 0 ]]; then
+HAS_REFERENCE_UPLOAD=false
+if [[ "${WITH_ZONE_LOOKUP}" == true || "${WITH_ZONE_CENTROIDS}" == true ]]; then
+  HAS_REFERENCE_UPLOAD=true
+fi
+
+if [[ ${#YEAR_MONTHS[@]} -eq 0 && "${HAS_REFERENCE_UPLOAD}" == false ]]; then
   echo "ERROR: No months provided."
   usage
   exit 1
@@ -83,7 +89,11 @@ fi
 echo "========================================"
 echo "Uploading NYC Taxi landing data to S3"
 echo "Bucket: ${BUCKET_NAME}"
-echo "Months: ${YEAR_MONTHS[*]}"
+if [[ ${#YEAR_MONTHS[@]} -eq 0 ]]; then
+  echo "Months: reference-only upload"
+else
+  echo "Months: ${YEAR_MONTHS[*]}"
+fi
 echo "========================================"
 
 if [[ "${WITH_ZONE_LOOKUP}" == true ]]; then
