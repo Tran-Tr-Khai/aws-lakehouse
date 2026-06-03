@@ -59,17 +59,22 @@ infrastructure.
 - dbt Gold star schema and dashboard marts
 - Airflow DAG for end-to-end orchestration
 - Terraform dev infrastructure: S3, Athena, Glue Catalog, Glue IAM role, Glue job
-- Power BI dashboard with 2 pages
+- Power BI dashboard with 3 pages
 
 ## Dashboard
 
 ### Page 1: Executive Overview
 
-![Executive Overview](nyctx-bi-dashboard/screenshots/Page%201.jpg)
+![Executive Overview](nyctx-bi-dashboard/screenshots/page%201.jpg)
 
 ### Page 2: Demand Analysis
 
-![Demand Analysis](nyctx-bi-dashboard/screenshots/Page%202.jpg)
+![Demand Analysis](nyctx-bi-dashboard/screenshots/page%202.jpg)
+
+### Page 3: Pickup Market Hotspots
+
+![Pickup Market Hotspots](nyctx-bi-dashboard/screenshots/page%203.jpg)
+
 
 Airflow screenshots will be added after the next company-machine run.
 
@@ -83,7 +88,6 @@ nyctx-dbt-transformer/       dbt Gold core models and marts
 nyctx-airflow-orchestrator/  Airflow DAG and Docker runtime
 nyctx-terraform-infra/       Terraform dev infrastructure
 nyctx-bi-dashboard/          Power BI file and screenshots
-docs/                        Layer rules and data model notes
 config/                      Batch month configuration
 ```
 
@@ -93,7 +97,8 @@ config/                      Batch month configuration
 2. When does taxi demand peak by hour and day type?
 3. What drives changes in average trip value?
 4. How do fare, tip, toll, airport fee, and surcharge components contribute?
-5. Which records should be excluded from normal analytics as outliers?
+5. Which pickup zones and boroughs are the largest demand hotspots?
+6. Which records should be excluded from normal analytics as outliers?
 
 ## Terraform Dev Infrastructure
 
@@ -112,6 +117,6 @@ Power BI files, and Terraform state are not committed.
 
 ## Status
 
-Dashboard feature scope is frozen at 2 pages. The next work is hardening:
+Dashboard feature scope is frozen at 3 pages. The next work is hardening:
 Terraform docs, dev pipeline validation, Airflow screenshots, and final
 portfolio documentation.

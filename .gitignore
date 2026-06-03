@@ -6,6 +6,8 @@ __pycache__/
 data/
 logs/
 
+docs/
+
 nyctx-dbt-transformer/logs/
 nyctx-dbt-transformer/target/
 nyctx-dbt-transformer/dbt_packages/
