@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 import re
 import requests
-
+import logging
 
 BASE_URL = "https://d37ci6vzurychx.cloudfront.net/trip-data"
 ZONE_LOOKUP_URL = "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv"
@@ -10,6 +10,14 @@ ZONE_LOOKUP_URL = "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.c
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 LANDING_DIR = PROJECT_ROOT / "data" / "landing"
 
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.StreamHandler()         
+    ]
+)
 
 def resolve_project_path(path: Path) -> Path:
     if path.is_absolute():
@@ -21,23 +29,42 @@ def resolve_project_path(path: Path) -> Path:
 def download_file(url: str, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # get metadata 
+    try: 
+        header_response = requests.head(url, timeout=10)
+        server_file_size = int(header_response.headers.get("Content-Length", 0)) 
+    except requests.RequestException as e: 
+        logging.error(f"Failed to fetch metadata from server: {e}")
+        raise e
+    
+    # Check file có tồn tại vs kích thước có phù hợp hay không.
     if output_path.exists():
-        print(f"[SKIP] File already exists: {output_path}")
-        return
+        local_file_size = output_path.stat().st_size
+        if local_file_size == server_file_size and server_file_size > 0: 
+            logging.info("File already exists and fit sizes")
+            return
+        else: 
+            logging.warning(
+                f"File mismatch or corrupted! (Local: {local_file_size} bytes, Server: {server_file_size} bytes). Deleting and redownloading..."
+            )
+            output_path.unlink() #Xóa file lỗi
 
-    print(f"[DOWNLOAD] {url}")
-    print(f"[SAVE TO]  {output_path}")
 
-    with requests.get(url, stream=True, timeout=120) as response:
-        response.raise_for_status()
+    logging.info(f"Starting download from URL: {url}")
+    logging.info(f"Saving data to path: {output_path}")
 
-        with open(output_path, "wb") as file:
-            for chunk in response.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    file.write(chunk)
+    try: 
+        with requests.get(url, stream=True, timeout=120) as response:
+            response.raise_for_status()
 
-    print(f"[DONE] {output_path}")
-
+            with open(output_path, "wb") as file:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        file.write(chunk)
+        logging.info(f"Successfully downloaded file: {output_path}")
+    except requests.RequestException as e: 
+        logging.error(f"Critical error occurred during download: {e}")
+        raise e
 
 def download_yellow_taxi_month(year: int, month: int) -> None:
     filename = f"yellow_tripdata_{year}-{month:02d}.parquet"
@@ -105,58 +132,21 @@ def parse_args() -> argparse.Namespace:
         description="Download NYC Yellow Taxi monthly parquet files."
     )
 
-    parser.add_argument(
-        "--year",
-        type=int,
-        required=False,
-        help="Year to download, example: 2024",
-    )
-
-    parser.add_argument(
-        "--months",
-        type=int,
-        nargs="+",
-        required=False,
-        help="Months to download with --year, example: --months 1 2 3",
-    )
-
-    parser.add_argument(
-        "--year-months",
-        type=str,
-        nargs="+",
-        required=False,
-        help="Year-month values to download, example: --year-months 2019-01 2020-04",
-    )
-
-    parser.add_argument(
-        "--months-file",
-        type=Path,
-        required=False,
-        help="Text file containing YYYY-MM values, one per line.",
-    )
-
-    parser.add_argument(
-        "--with-zone-lookup",
-        action="store_true",
-        help="Download taxi zone lookup CSV.",
-    )
-
-    parser.add_argument(
-        "--with-zone-centroids",
-        action="store_true",
-        help="Build taxi zone centroid CSV from the official TLC taxi zones shapefile.",
-    )
-
-    parser.add_argument(
-        "--force-reference",
-        action="store_true",
-        help="Regenerate local reference outputs even when files already exist.",
-    )
+    parser.add_argument("--year", type=int, required=False, help="Year to download, example: 2024")
+    parser.add_argument("--months", type=int, nargs="+", required=False, help="Months to download with --year")
+    parser.add_argument("--year-months", type=str, nargs="+", required=False, help="Year-month values to download")
+    parser.add_argument("--months-file", type=Path, required=False, help="Text file containing YYYY-MM values")
+    parser.add_argument("--with-zone-lookup", action="store_true", help="Download taxi zone lookup CSV.")
+    parser.add_argument("--with-zone-centroids", action="store_true", help="Build taxi zone centroid CSV.")
+    parser.add_argument("--force-reference", action="store_true", help="Regenerate local reference outputs.")
 
     return parser.parse_args()
 
 
 def build_download_plan(args: argparse.Namespace) -> list[tuple[int, int]]:
+    if args.year_months and (args.year or args.months):
+        raise ValueError("Only 1 method, not add > 1 method.")
+
     year_month_values: list[str] = []
 
     if args.year_months:
@@ -201,16 +191,14 @@ def main() -> None:
 
     if not has_month_inputs:
         if args.with_zone_lookup or args.with_zone_centroids:
-            print("[PLAN] 0 month(s) to download")
+            logging.info("Execution plan complete: 0 month(s) to download (Reference flags processed).")
             return
-
         raise ValueError(
             "Please provide month inputs or at least one reference download flag."
         )
 
     download_plan = build_download_plan(args)
-
-    print(f"[PLAN] {len(download_plan)} month(s) to download")
+    logging.info(f"Execution plan created successfully: {len(download_plan)} month(s) scheduled for download.")
 
     for year, month in download_plan:
         download_yellow_taxi_month(year=year, month=month)
