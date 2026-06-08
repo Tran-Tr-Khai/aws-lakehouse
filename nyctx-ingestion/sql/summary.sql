@@ -1,0 +1,21 @@
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(DISTINCT VendorID) AS distinct_vendor_count,
+    COUNT(DISTINCT payment_type) AS distinct_payment_type_count,
+    COUNT(DISTINCT RatecodeID) AS distinct_ratecode_count,
+    COUNT(DISTINCT PULocationID) AS distinct_pickup_location_count,
+    COUNT(DISTINCT DOLocationID) AS distinct_dropoff_location_count,
+    MIN(tpep_pickup_datetime) AS min_pickup_datetime,
+    MAX(tpep_pickup_datetime) AS max_pickup_datetime,
+    MIN(tpep_dropoff_datetime) AS min_dropoff_datetime,
+    MAX(tpep_dropoff_datetime) AS max_dropoff_datetime,
+    MIN(trip_distance) AS min_trip_distance,
+    MAX(trip_distance) AS max_trip_distance,
+    AVG(trip_distance) AS avg_trip_distance,
+    MIN(fare_amount) AS min_fare_amount,
+    MAX(fare_amount) AS max_fare_amount,
+    AVG(fare_amount) AS avg_fare_amount,
+    MIN(total_amount) AS min_total_amount,
+    MAX(total_amount) AS max_total_amount,
+    AVG(total_amount) AS avg_total_amount
+FROM read_parquet('{trip_file_sql}');
