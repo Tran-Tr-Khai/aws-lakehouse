@@ -52,7 +52,7 @@ with DAG(
         task_id="download_raw_sample",
         bash_command=project_bash(
             f"""
-            python nyctx-ingestion/scripts/download.py \
+            nyctx-download \
               --months-file {MONTHS_FILE} \
               --with-zone-lookup \
               --with-zone-centroids
@@ -64,7 +64,7 @@ with DAG(
         task_id="profile_bronze_local",
         bash_command=project_bash(
             f"""
-            python nyctx-ingestion/scripts/raw_quality_check.py \
+            nyctx-quality-check \
               --months-file {MONTHS_FILE}
             """
         ),

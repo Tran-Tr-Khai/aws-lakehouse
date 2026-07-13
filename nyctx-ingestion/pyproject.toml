@@ -14,9 +14,34 @@ dependencies = [
     "tabulate>=0.9,<1",
 ]
 
+[project.scripts]
+nyctx-download = "nyctx_ingestion.download:main"
+nyctx-quality-check = "nyctx_ingestion.quality:main"
+nyctx-build-zone-centroids = "nyctx_ingestion.centroids:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nyctx_ingestion"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"sql" = "nyctx_ingestion/sql"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9",
+    "ruff>=0.12,<1",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]

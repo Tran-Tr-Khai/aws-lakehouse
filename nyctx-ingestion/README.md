@@ -1,51 +1,86 @@
 # nyctx-ingestion
 
-Downloads NYC Yellow Taxi raw data, uploads to S3 Bronze layer, and provides local data quality profiling.
+Downloads NYC Yellow Taxi source data, validates local Bronze inputs, builds taxi-zone
+reference data, and uploads verified objects to S3.
 
 ## Structure
 
+```text
+nyctx-ingestion/
+├── src/nyctx_ingestion/   # Reusable, tested application code
+├── scripts/               # AWS CLI helpers such as upload_to_s3.sh
+├── sql/                   # DuckDB profiling queries
+└── tests/                 # Unit and behavioral tests
 ```
-scripts/           # Ingestion and quality scripts
-src/
-└── nyctx_ingestion/   # Shared Python helpers (logger, paths, quality)
-```
 
-## Scripts
+Installing the package provides the console entrypoints used by Airflow:
 
-| Script | Description |
-|--------|-------------|
-| `scripts/download.py` | Download monthly Yellow Taxi parquet files from TLC |
-| `scripts/upload_to_s3.sh` | Upload local parquet + zone lookup to S3 Bronze |
-| `scripts/raw_quality_check.py` | Profile local Bronze data using DuckDB |
+- `nyctx-download`
+- `nyctx-quality-check`
+- `nyctx-build-zone-centroids`
 
-## Usage
+## Download
+
+Use exactly one month input method:
 
 ```bash
-# Download data
-uv run python nyctx-ingestion/scripts/download.py --year 2024 --months 1 2 3 --with-zone-lookup
-
-# Upload to S3
-bash nyctx-ingestion/scripts/upload_to_s3.sh --year-months 2024-01 --with-zone-lookup
-
-# Profile quality
-uv run python nyctx-ingestion/scripts/raw_quality_check.py --year 2024 --month 1
+uv run --project nyctx-ingestion nyctx-download --year 2024 --months 1 2 3
+uv run --project nyctx-ingestion nyctx-download --year-months 2024-01 2024-02
+uv run --project nyctx-ingestion nyctx-download \
+  --months-file config/recovery_sample_months.txt \
+  --with-zone-lookup \
+  --with-zone-centroids
 ```
 
-By default, `raw_quality_check.py` writes only the compact summary files:
+Downloads use bounded HTTP retries and a `.part` file. The final landing file is published
+only after its size and file format are validated.
+
+## Local Bronze quality
+
+Profiling mode records quality metrics without rejecting expected dirty Bronze rows:
+
+```bash
+uv run --project nyctx-ingestion nyctx-quality-check --year 2024 --month 1
+```
+
+Enable a pipeline gate with an explicit distinct critical-row threshold:
+
+```bash
+uv run --project nyctx-ingestion nyctx-quality-check \
+  --months-file config/recovery_sample_months.txt \
+  --max-critical-ratio 0.40
+```
+
+Use `--fail-on-critical` when no critical rows are acceptable. Add `--write-details` to
+persist every query result. Each invocation writes to an isolated directory:
 
 ```text
-data/quality/local_profile/bronze_quality_summary.csv
-data/quality/local_profile/bronze_quality_summary.md
+data/quality/local_profile/run_id=<timestamp>-<pid>/
+├── bronze_quality_summary.csv
+├── bronze_quality_summary.md
+└── year=YYYY/month=MM/       # only with --write-details
 ```
 
-Detailed per-check CSV files are optional and intended for deeper profiling
-during development:
+## Upload to S3
+
+The destination bucket must be explicit:
 
 ```bash
-uv run python nyctx-ingestion/scripts/raw_quality_check.py \
-  --year 2024 \
-  --month 1 \
-  --write-details
+export NYCTX_S3_BUCKET=nyc-taxi-lakehouse-example-dev
+bash nyctx-ingestion/scripts/upload_to_s3.sh \
+  --months-file config/recovery_sample_months.txt \
+  --with-zone-lookup \
+  --with-zone-centroids
 ```
 
-> For local exploration and ad-hoc queries, see `sandbox/local_explore.py`.
+The uploader validates all local inputs before writing. It stores SHA-256 metadata and skips
+an existing object only when both its size and checksum match. Use `--force` to overwrite.
+
+## Development
+
+```bash
+uv sync --package nyctx-ingestion --group dev
+uv run --project nyctx-ingestion pytest nyctx-ingestion/tests
+uv run --project nyctx-ingestion ruff check nyctx-ingestion
+uv build --package nyctx-ingestion
+```

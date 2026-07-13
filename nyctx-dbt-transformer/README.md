@@ -157,7 +157,7 @@ reference_taxi_zone_centroids
 Generate centroids from the official TLC taxi zone shapefile:
 
 ```bash
-uv run --package nyctx-ingestion python nyctx-ingestion/scripts/build_taxi_zone_centroids.py
+uv run --project nyctx-ingestion nyctx-build-zone-centroids
 ```
 
 Power BI should use `dim_zone[latitude]` and `dim_zone[longitude]` for market

@@ -134,7 +134,7 @@ data/quality/local_profile/bronze_quality_summary.md
 ```
 
 Detailed profiling CSVs are intentionally disabled in the DAG to avoid noisy
-local artifacts. Use `raw_quality_check.py --write-details` manually when you
+local artifacts. Use `nyctx-quality-check --write-details` manually when you
 need to inspect distributions, null checks, or detailed quality checks.
 
 Athena integration is limited to production control checks:
