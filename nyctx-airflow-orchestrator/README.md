@@ -1,4 +1,4 @@
-# nyctx-airflow-orchestrator
+﻿# nyctx-airflow-orchestrator
 
 Apache Airflow DAGs for end-to-end pipeline orchestration.
 
@@ -104,16 +104,18 @@ Use these params when triggering manually:
 
 ```json
 {
+  "run_ingestion_only": false,
   "run_gold": true,
   "force_gold": false,
   "run_dbt_tests": true
 }
 ```
 
-Set `run_gold=false` to skip the Gold task entirely. Set `force_gold=true` only
-when you intentionally want to rebuild Gold after dbt logic changes or after a
-forced Silver rewrite. Forced Gold runs rebuild selected dbt tables and Athena
-scans data again.
+Set `run_ingestion_only=true` to stop after `upload_bronze_to_s3` and skip the
+Silver/Gold downstream tasks. Set `run_gold=false` to skip the Gold task
+entirely. Set `force_gold=true` only when you intentionally want to rebuild
+Gold after dbt logic changes or after a forced Silver rewrite. Forced Gold
+runs rebuild selected dbt tables and Athena scans data again.
 
 By default the pipeline is idempotent:
 
@@ -251,3 +253,5 @@ For a 1000 USD/month target, the project should demonstrate more than "it runs".
 It should show production instincts: idempotency, retries, logging, data quality,
 cost awareness, clear documentation, and a dashboard or analytics layer that
 answers business questions.
+
+

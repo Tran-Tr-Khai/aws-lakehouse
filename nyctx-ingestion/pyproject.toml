@@ -1,47 +1,49 @@
 [project]
-name = "nyctx-ingestion"
-version = "0.1.0"
-description = "Ingestion and local raw quality checks for NYC Taxi data"
-readme = "README.md"
-requires-python = ">=3.11,<3.14"
+name = 'nyctx-ingestion'
+version = '0.1.0'
+description = 'Ingestion and local raw quality checks for NYC Taxi data'
+readme = 'README.md'
+requires-python = '>=3.11,<3.14'
 dependencies = [
-    "duckdb>=1.1,<2",
-    "pandas>=2.1,<3",
-    "pyarrow>=15,<25",
-    "pyproj>=3.7,<4",
-    "pyshp>=2.3,<3",
-    "requests>=2.31,<3",
-    "tabulate>=0.9,<1",
+    'boto3>=1.34,<2',
+    'duckdb>=1.1,<2',
+    'pandas>=2.1,<3',
+    'pyarrow>=15,<25',
+    'pyproj>=3.7,<4',
+    'pyshp>=2.3,<3',
+    'requests>=2.31,<3',
+    'tabulate>=0.9,<1',
 ]
 
 [project.scripts]
-nyctx-download = "nyctx_ingestion.download:main"
-nyctx-quality-check = "nyctx_ingestion.quality:main"
-nyctx-build-zone-centroids = "nyctx_ingestion.centroids:main"
+nyctx-download = 'nyctx_ingestion.download:main'
+nyctx-quality-check = 'nyctx_ingestion.quality:main'
+nyctx-build-zone-centroids = 'nyctx_ingestion.centroids:main'
+nyctx-upload = 'nyctx_ingestion.upload:main'
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ['hatchling']
+build-backend = 'hatchling.build'
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/nyctx_ingestion"]
+packages = ['src/nyctx_ingestion']
 
 [tool.hatch.build.targets.wheel.force-include]
-"sql" = "nyctx_ingestion/sql"
+'sql' = 'nyctx_ingestion/sql'
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3,<9",
-    "ruff>=0.12,<1",
+    'pytest>=8.3,<9',
+    'ruff>=0.12,<1',
 ]
 
 [tool.pytest.ini_options]
-addopts = "-ra"
-testpaths = ["tests"]
+addopts = '-ra'
+testpaths = ['tests']
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = 'py311'
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP", "SIM"]
+select = ['E', 'F', 'I', 'B', 'UP', 'SIM']

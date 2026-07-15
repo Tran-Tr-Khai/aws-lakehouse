@@ -226,9 +226,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def run(args: argparse.Namespace) -> Path:
     plan = build_plan(args)
+    if not plan:
+        raise ValueError('No valid periods were provided.')
     threshold = 0.0 if args.fail_on_critical else args.max_critical_ratio
     if threshold is not None and not 0.0 <= threshold <= 1.0:
-        raise ValueError("--max-critical-ratio must be between 0 and 1.")
+        raise ValueError('--max-critical-ratio must be between 0 and 1.')
     output_dir = resolve_project_path(args.output_dir) if args.output_dir else default_output_dir()
     output_dir.mkdir(parents=True, exist_ok=False)
     rows = [
@@ -237,24 +239,24 @@ def run(args: argparse.Namespace) -> Path:
     ]
     write_summary(rows, output_dir)
     failures = [
-        row for row in rows if threshold is not None and row["critical_row_ratio"] > threshold
+        row for row in rows if threshold is not None and row['critical_row_ratio'] > threshold
     ]
     if failures:
-        periods = ", ".join(row["period"] for row in failures)
+        periods = ', '.join(row['period'] for row in failures)
         raise QualityGateError(
-            f"Bronze quality gate failed for {periods}: max critical-row ratio={threshold:.4f}"
+            f'Bronze quality gate failed for {periods}: max critical-row ratio={threshold:.4f}'
         )
     return output_dir
 
 
 def main(argv: list[str] | None = None) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
     try:
         run(parse_args(argv))
     except (FileNotFoundError, QualityGateError, ValueError) as error:
-        LOGGER.error("%s", error)
+        LOGGER.error('%s', error)
         raise SystemExit(1) from error
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

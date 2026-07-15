@@ -6,6 +6,7 @@ from airflow import DAG
 from airflow.models.param import Param
 from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import BranchPythonOperator
 
 
 PROJECT_ROOT = "/opt/airflow/project"
@@ -21,6 +22,17 @@ def project_bash(command: str) -> str:
     """
 
 
+def choose_post_ingestion_path(**context) -> str:
+    dag_run = context.get("dag_run")
+    params = context["params"]
+    run_ingestion_only = params["run_ingestion_only"]
+
+    if dag_run is not None:
+        run_ingestion_only = dag_run.conf.get("run_ingestion_only", run_ingestion_only)
+
+    return "finish_ingestion_only" if run_ingestion_only else "deploy_glue_script"
+
+
 with DAG(
     dag_id="pipeline",
     description="NYC Taxi Bronze ingestion, Silver Glue transform, Athena checks, and optional dbt Gold build",
@@ -29,6 +41,11 @@ with DAG(
     catchup=False,
     tags=["nyc-taxi", "bronze", "silver", "gold", "aws"],
     params={
+        "run_ingestion_only": Param(
+            False,
+            type="boolean",
+            description="Stop after Bronze ingestion and skip Silver/Gold downstream tasks.",
+        ),
         "run_gold": Param(
             True,
             type="boolean",
@@ -74,13 +91,21 @@ with DAG(
         task_id="upload_bronze_to_s3",
         bash_command=project_bash(
             f"""
-            bash nyctx-ingestion/scripts/upload_to_s3.sh \
+            env XDG_CACHE_HOME=/home/airflow/.cache UV_CACHE_DIR=/home/airflow/.cache/uv \
+              bash nyctx-ingestion/scripts/upload_to_s3.sh \
               --months-file {MONTHS_FILE} \
               --with-zone-lookup \
               --with-zone-centroids
             """
         ),
     )
+
+    choose_post_ingestion_path_task = BranchPythonOperator(
+        task_id="choose_post_ingestion_path",
+        python_callable=choose_post_ingestion_path,
+    )
+
+    finish_ingestion_only = EmptyOperator(task_id="finish_ingestion_only")
 
     deploy_glue_script = BashOperator(
         task_id="deploy_glue_script",
@@ -168,17 +193,20 @@ with DAG(
         ),
     )
 
-    end = EmptyOperator(task_id="end")
+    end = EmptyOperator(task_id="end", trigger_rule="none_failed_min_one_success")
 
     (
         start
         >> download_raw_sample
         >> profile_bronze_local
         >> upload_bronze_to_s3
-        >> deploy_glue_script
-        >> transform_silver
-        >> setup_athena_catalog
-        >> validate_silver_athena
-        >> build_gold_marts
-        >> end
+        >> choose_post_ingestion_path_task
     )
+
+    choose_post_ingestion_path_task >> deploy_glue_script
+    choose_post_ingestion_path_task >> finish_ingestion_only
+
+    deploy_glue_script >> transform_silver >> setup_athena_catalog >> validate_silver_athena >> build_gold_marts
+
+    finish_ingestion_only >> end
+    build_gold_marts >> end

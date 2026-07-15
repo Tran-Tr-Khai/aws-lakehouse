@@ -12,6 +12,7 @@ nyctx-dbt-transformer/logs/
 nyctx-dbt-transformer/target/
 nyctx-dbt-transformer/dbt_packages/
 nyctx-dbt-transformer/.user.yml
+nyctx-glue-processor/dist/
 
 .terraform/
 **/.terraform/

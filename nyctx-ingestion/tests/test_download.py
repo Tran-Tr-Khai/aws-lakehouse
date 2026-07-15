@@ -4,8 +4,9 @@ import argparse
 from pathlib import Path
 
 import pytest
+import requests
 
-from nyctx_ingestion.download import build_download_plan, download_file
+from nyctx_ingestion.download import build_download_plan, download_file, probe_remote_size
 
 
 class FakeResponse:
@@ -42,6 +43,13 @@ class FakeSession:
         return None
 
 
+class HeadForbiddenSession(FakeSession):
+    def head(self, *args: object, **kwargs: object) -> FakeResponse:
+        response = requests.Response()
+        response.status_code = 403
+        raise requests.HTTPError('403 Client Error', response=response)
+
+
 def make_args(**overrides: object) -> argparse.Namespace:
     values = {
         "year": None,
@@ -70,6 +78,20 @@ def test_download_removes_partial_file_on_size_mismatch(tmp_path: Path) -> None:
         )
     assert not output.exists()
     assert not output.with_name("lookup.csv.part").exists()
+
+
+def test_probe_remote_size_ignores_head_403() -> None:
+    assert probe_remote_size(HeadForbiddenSession(b'content'), 'https://example.test/file.csv') is None
+
+
+def test_download_falls_back_when_head_is_forbidden(tmp_path: Path) -> None:
+    output = tmp_path / 'lookup.csv'
+    download_file(
+        'https://example.test/lookup.csv',
+        output,
+        session=HeadForbiddenSession(b'a,b\n1,2\n'),
+    )
+    assert output.read_bytes() == b'a,b\n1,2\n'
 
 
 def test_download_plan_rejects_mixed_input_methods() -> None:

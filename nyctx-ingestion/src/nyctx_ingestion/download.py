@@ -54,6 +54,25 @@ def validate_download(path: Path) -> None:
                 raise ValueError(f"Downloaded ZIP failed CRC validation: {path}")
 
 
+def probe_remote_size(http: requests.Session, url: str) -> int | None:
+    """Try to fetch remote size metadata without failing on HEAD-restricted origins."""
+    try:
+        with http.head(url, timeout=(10, 30), allow_redirects=True) as response:
+            response.raise_for_status()
+            content_length = response.headers.get("Content-Length")
+            return int(content_length) if content_length else None
+    except requests.HTTPError as error:
+        status_code = error.response.status_code if error.response is not None else None
+        if status_code in {403, 405}:
+            LOGGER.warning(
+                "HEAD probe rejected for %s with status %s; continuing without remote size",
+                url,
+                status_code,
+            )
+            return None
+        raise
+
+
 def download_file(
     url: str,
     output_path: Path,
@@ -68,10 +87,7 @@ def download_file(
     temporary_path = output_path.with_name(f"{output_path.name}.part")
 
     try:
-        with http.head(url, timeout=(10, 30), allow_redirects=True) as response:
-            response.raise_for_status()
-            content_length = response.headers.get("Content-Length")
-            remote_size = int(content_length) if content_length else None
+        remote_size = probe_remote_size(http, url)
 
         if output_path.exists() and not force:
             size_matches = remote_size is None or output_path.stat().st_size == remote_size
