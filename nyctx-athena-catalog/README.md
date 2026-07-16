@@ -48,6 +48,10 @@ scripts/
   validate_silver_partitions.sh
 ```
 
+These shell scripts are intentionally thin wrappers. The real Athena logic now
+lives in a Python CLI package so polling, templating, and validation rules stay
+testable and easier to evolve.
+
 ## Create Catalog Objects
 
 Run these with the project script so environment placeholders are rendered:
@@ -72,7 +76,8 @@ bash nyctx-athena-catalog/scripts/run_athena_sql.sh \
 
 The DDL reads environment variables such as `NYCTX_ATHENA_DATABASE`,
 `NYCTX_ATHENA_SILVER_TABLE`, and `NYCTX_ATHENA_SILVER_LOCATION`. For the
-Terraform dev environment these should point to the `-dev` resources.
+current project defaults these point to the non-`dev` resources, and you can
+override them per environment with shell variables.
 
 The Silver table uses partition projection, so you do not need to run manual
 `ALTER TABLE ADD PARTITION` for every processed month.
@@ -86,6 +91,18 @@ month STRING
 
 This matches the S3 folder names such as `year=2024/month=01/` and makes query
 filters explicit.
+
+The Silver DDL also uses `NYCTX_ATHENA_YEAR_RANGE` for partition projection, so
+you can extend the supported year window without editing SQL by hand.
+
+Query polling has production guardrails:
+
+- `NYCTX_ATHENA_POLL_SECONDS` defaults to `5`;
+- `NYCTX_ATHENA_QUERY_TIMEOUT_SECONDS` defaults to `1800`;
+- timed-out queries are cancelled instead of polling forever;
+- invalid identifiers, S3 locations, projection ranges, unresolved SQL
+  placeholders, duplicate periods, and empty period files fail before a query
+  is submitted.
 
 ## Safe Smoke Test
 

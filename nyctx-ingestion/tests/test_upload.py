@@ -42,7 +42,7 @@ class FakeMissingClient:
 
 def make_args(**overrides: object) -> argparse.Namespace:
     values = {
-        'year_months': None,
+        'periods': None,
         'months_file': None,
         'with_zone_lookup': False,
         'with_zone_centroids': False,
@@ -60,7 +60,7 @@ def test_build_upload_items_rejects_empty_request() -> None:
 
 
 def test_build_upload_items_deduplicates_and_sorts_periods() -> None:
-    items = build_upload_items(make_args(year_months=['2024-02', '2024-01', '2024-02']))
+    items = build_upload_items(make_args(periods=['2024-02', '2024-01', '2024-02']))
     assert [item.label for item in items] == ['2024-01', '2024-02']
 
 

@@ -1,5 +1,6 @@
 -- Scan safety: SAFE.
--- Required partition filter: exactly one year/month partition.
+-- Required partition filter: exactly one runtime year/month partition.
+-- Usage: pass --year YYYY --month MM.
 -- Purpose: summarize payment mix and tipping behavior for one processed month.
 
 SELECT
@@ -9,9 +10,9 @@ SELECT
     AVG(fare_amount) AS avg_fare_amount,
     AVG(tip_amount) AS avg_tip_amount,
     AVG(tip_rate) AS avg_tip_rate
-FROM nyc_taxi_lakehouse.silver_yellow_taxi
-WHERE year = '2024'
-  AND month = '01'
+FROM __NYCTX_ATHENA_DATABASE__.__NYCTX_ATHENA_SILVER_TABLE__
+WHERE year = '__NYCTX_ATHENA_QUERY_YEAR__'
+  AND month = '__NYCTX_ATHENA_QUERY_MONTH__'
 GROUP BY
     payment_type
 ORDER BY

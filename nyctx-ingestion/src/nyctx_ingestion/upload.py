@@ -123,11 +123,11 @@ def upload_with_boto3(
 
 
 def build_plan(args: argparse.Namespace) -> list[tuple[int, int]]:
-    methods = sum((bool(args.year_months), bool(args.months_file)))
+    methods = sum((bool(args.periods), bool(args.months_file)))
     if methods > 1:
-        raise ValueError('Use either --year-months or --months-file, not both.')
-    if args.year_months:
-        return normalize_periods(args.year_months)
+        raise ValueError('Use either --periods or --months-file, not both.')
+    if args.periods:
+        return normalize_periods(args.periods)
     if args.months_file:
         values = load_year_months_from_file(resolve_project_path(args.months_file))
         return normalize_periods(values)
@@ -208,7 +208,7 @@ def upload_item(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Upload validated landing artifacts to S3.')
-    parser.add_argument('--year-months', nargs='+', help='Periods in YYYY-MM format.')
+    parser.add_argument('--periods', '--year-months', dest='periods', nargs='+', help='Period specs: YYYY-MM, YYYY, or START:END.')
     parser.add_argument('--months-file', type=Path, help='File containing YYYY-MM values.')
     parser.add_argument('--with-zone-lookup', action='store_true')
     parser.add_argument('--with-zone-centroids', action='store_true')

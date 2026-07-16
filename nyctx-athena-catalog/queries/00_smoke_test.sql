@@ -1,5 +1,6 @@
 -- Scan safety: SAFE.
--- Required partition filter: exactly one year/month partition.
+-- Required partition filter: exactly one runtime year/month partition.
+-- Usage: pass --year YYYY --month MM.
 -- Purpose: verify that the Silver table can read one partition without scanning broad history.
 
 SELECT
@@ -15,7 +16,7 @@ SELECT
     payment_type,
     year,
     month
-FROM nyc_taxi_lakehouse.silver_yellow_taxi
-WHERE year = '2024'
-  AND month = '01'
+FROM __NYCTX_ATHENA_DATABASE__.__NYCTX_ATHENA_SILVER_TABLE__
+WHERE year = '__NYCTX_ATHENA_QUERY_YEAR__'
+  AND month = '__NYCTX_ATHENA_QUERY_MONTH__'
 LIMIT 25;

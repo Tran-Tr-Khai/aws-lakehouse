@@ -10,6 +10,7 @@ resolution-markers = [
 members = [
     "nyc-taxi-pipeline",
     "nyctx-airflow-orchestrator",
+    "nyctx-athena-catalog",
     "nyctx-dbt-transformer",
     "nyctx-glue-processor",
     "nyctx-ingestion",
@@ -809,6 +810,25 @@ source = { virtual = "." }
 name = "nyctx-airflow-orchestrator"
 version = "0.1.0"
 source = { virtual = "nyctx-airflow-orchestrator" }
+
+[[package]]
+name = "nyctx-athena-catalog"
+version = "0.1.0"
+source = { editable = "nyctx-athena-catalog" }
+dependencies = [
+    { name = "boto3" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "boto3", specifier = ">=1.34,<2" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8.3,<9" }]
 
 [[package]]
 name = "nyctx-dbt-transformer"

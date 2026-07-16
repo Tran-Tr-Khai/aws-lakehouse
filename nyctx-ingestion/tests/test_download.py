@@ -54,7 +54,7 @@ def make_args(**overrides: object) -> argparse.Namespace:
     values = {
         "year": None,
         "months": None,
-        "year_months": None,
+        "periods": None,
         "months_file": None,
     }
     values.update(overrides)
@@ -96,4 +96,4 @@ def test_download_falls_back_when_head_is_forbidden(tmp_path: Path) -> None:
 
 def test_download_plan_rejects_mixed_input_methods() -> None:
     with pytest.raises(ValueError, match="exactly one"):
-        build_download_plan(make_args(year=2024, months=[1], year_months=["2024-02"]))
+        build_download_plan(make_args(year=2024, months=[1], periods=["2024-02"]))

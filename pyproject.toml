@@ -15,4 +15,5 @@ members = [
     "nyctx-airflow-orchestrator",
     "nyctx-dbt-transformer",
     "nyctx-glue-processor",
+    "nyctx-athena-catalog",
 ]

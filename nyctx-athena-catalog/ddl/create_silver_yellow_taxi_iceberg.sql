@@ -1,4 +1,4 @@
-CREATE EXTERNAL TABLE IF NOT EXISTS __NYCTX_ATHENA_DATABASE__.__NYCTX_ATHENA_SILVER_TABLE__ (
+CREATE TABLE IF NOT EXISTS __NYCTX_ATHENA_DATABASE__.__NYCTX_ATHENA_ICEBERG_TABLE__ (
     vendor_id INT,
     pickup_datetime TIMESTAMP,
     dropoff_datetime TIMESTAMP,
@@ -41,20 +41,14 @@ CREATE EXTERNAL TABLE IF NOT EXISTS __NYCTX_ATHENA_DATABASE__.__NYCTX_ATHENA_SIL
     is_fare_distance_mismatch BOOLEAN,
     is_distance_duration_mismatch BOOLEAN,
     is_same_zone_high_fare BOOLEAN,
-    is_analytical_outlier BOOLEAN
-)
-PARTITIONED BY (
+    is_analytical_outlier BOOLEAN,
     year STRING,
     month STRING
 )
-STORED AS PARQUET
-LOCATION '__NYCTX_ATHENA_SILVER_LOCATION__'
+PARTITIONED BY (year, month)
+LOCATION '__NYCTX_ATHENA_ICEBERG_LOCATION__'
 TBLPROPERTIES (
-    'projection.enabled' = 'true',
-    'projection.year.type' = 'integer',
-    'projection.year.range' = '__NYCTX_ATHENA_YEAR_RANGE__',
-    'projection.year.digits' = '4',
-    'projection.month.type' = 'enum',
-    'projection.month.values' = '01,02,03,04,05,06,07,08,09,10,11,12',
-    'storage.location.template' = '__NYCTX_ATHENA_SILVER_LOCATION__year=${year}/month=${month}/'
+    'table_type' = 'ICEBERG',
+    'format' = 'parquet',
+    'write_compression' = 'snappy'
 );

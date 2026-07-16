@@ -185,17 +185,17 @@ def default_output_dir() -> Path:
 def build_plan(args: argparse.Namespace) -> list[tuple[int, int]]:
     methods = sum(
         (
-            bool(args.year_months),
+            bool(args.periods),
             bool(args.months_file),
             args.year is not None or args.month is not None,
         )
     )
     if methods != 1:
         raise ValueError(
-            "Use exactly one input method: --year/--month, --year-months, or --months-file."
+            "Use exactly one input method: --year/--month, --periods, or --months-file."
         )
-    if args.year_months:
-        return normalize_periods(args.year_months)
+    if args.periods:
+        return normalize_periods(args.periods)
     if args.months_file:
         return normalize_periods(load_year_months_from_file(resolve_project_path(args.months_file)))
     if args.year is None or args.month is None:
@@ -207,7 +207,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Profile local Bronze NYC Taxi data.")
     parser.add_argument("--year", type=int)
     parser.add_argument("--month", type=int)
-    parser.add_argument("--year-months", nargs="+")
+    parser.add_argument("--periods", "--year-months", dest="periods", nargs="+")
     parser.add_argument("--months-file", type=Path)
     parser.add_argument("--write-details", action="store_true")
     parser.add_argument("--output-dir", type=Path)

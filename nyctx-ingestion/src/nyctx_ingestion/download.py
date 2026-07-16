@@ -127,17 +127,17 @@ def build_download_plan(args: argparse.Namespace) -> list[tuple[int, int]]:
     """Build a validated plan from exactly one month input method."""
     methods = sum(
         (
-            bool(args.year_months),
+            bool(args.periods),
             bool(args.months_file),
             args.year is not None or bool(args.months),
         )
     )
     if methods > 1:
         raise ValueError(
-            "Use exactly one month input method: --year/--months, --year-months, or --months-file."
+            "Use exactly one month input method: --year/--months, --periods, or --months-file."
         )
-    if args.year_months:
-        return normalize_periods(args.year_months)
+    if args.periods:
+        return normalize_periods(args.periods)
     if args.months_file:
         values = load_year_months_from_file(resolve_project_path(args.months_file))
         return normalize_periods(values)
@@ -152,7 +152,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Download NYC Yellow Taxi source data.")
     parser.add_argument("--year", type=int, help="Year to download, for example 2024.")
     parser.add_argument("--months", type=int, nargs="+", help="Months used with --year.")
-    parser.add_argument("--year-months", nargs="+", help="Periods in YYYY-MM format.")
+    parser.add_argument("--periods", "--year-months", dest="periods", nargs="+", help="Period specs: YYYY-MM, YYYY, or START:END.")
     parser.add_argument("--months-file", type=Path, help="File containing YYYY-MM values.")
     parser.add_argument("--with-zone-lookup", action="store_true")
     parser.add_argument("--with-zone-centroids", action="store_true")
