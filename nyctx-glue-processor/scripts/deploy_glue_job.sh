@@ -19,11 +19,15 @@ S3_PACKAGE_PATH="${S3_PACKAGE_PATH:-s3://${BUCKET}/artifacts/nyctx_glue_processo
 
 GLUE_VERSION="${GLUE_VERSION:-4.0}"
 WORKER_TYPE="${WORKER_TYPE:-G.1X}"
-NUMBER_OF_WORKERS="${NUMBER_OF_WORKERS:-2}"
+NUMBER_OF_WORKERS="${NUMBER_OF_WORKERS:-4}"
 TIMEOUT_MINUTES="${TIMEOUT_MINUTES:-15}"
 MAX_CONCURRENT_RUNS="${MAX_CONCURRENT_RUNS:-1}"
 SPARK_UI_ENABLED="${SPARK_UI_ENABLED:-true}"
 SPARK_EVENT_LOGS_PATH="${SPARK_EVENT_LOGS_PATH:-s3://${BUCKET}/spark-ui/}"
+OUTPUT_FORMAT="${NYCTX_SILVER_OUTPUT_FORMAT:-both}"
+ATHENA_DATABASE="${NYCTX_ATHENA_DATABASE:-nyc_taxi_lakehouse}"
+ICEBERG_TABLE="${NYCTX_ICEBERG_TABLE:-silver_yellow_taxi_iceberg}"
+ICEBERG_SPARK_CONF="spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions --conf spark.sql.catalog.glue_catalog=org.apache.iceberg.spark.SparkCatalog --conf spark.sql.catalog.glue_catalog.warehouse=s3://${BUCKET}/ --conf spark.sql.catalog.glue_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog --conf spark.sql.catalog.glue_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO"
 DEFAULT_YEAR="${DEFAULT_YEAR:-2024}"
 DEFAULT_MONTH="${DEFAULT_MONTH:-1}"
 
@@ -67,10 +71,16 @@ JOB_CONFIG=$(
     "--job-language": "python",
     "--enable-spark-ui": "${SPARK_UI_ENABLED}",
     "--spark-event-logs-path": "${SPARK_EVENT_LOGS_PATH}",
+    "--datalake-formats": "iceberg",
+    "--enable-glue-datacatalog": "true",
+    "--conf": "${ICEBERG_SPARK_CONF}",
     "--extra-py-files": "${S3_PACKAGE_PATH}",
     "--BUCKET": "${BUCKET}",
     "--YEAR": "${DEFAULT_YEAR}",
-    "--MONTH": "${DEFAULT_MONTH}"
+    "--MONTH": "${DEFAULT_MONTH}",
+    "--OUTPUT_FORMAT": "${OUTPUT_FORMAT}",
+    "--ATHENA_DATABASE": "${ATHENA_DATABASE}",
+    "--ICEBERG_TABLE": "${ICEBERG_TABLE}"
   }
 }
 EOF
@@ -103,10 +113,18 @@ else
     }" \
     --default-arguments "{
       \"--job-language\": \"python\",
+      \"--enable-spark-ui\": \"${SPARK_UI_ENABLED}\",
+      \"--spark-event-logs-path\": \"${SPARK_EVENT_LOGS_PATH}\",
+      \"--datalake-formats\": \"iceberg\",
+      \"--enable-glue-datacatalog\": \"true\",
+      \"--conf\": \"${ICEBERG_SPARK_CONF}\",
       \"--extra-py-files\": \"${S3_PACKAGE_PATH}\",
       \"--BUCKET\": \"${BUCKET}\",
       \"--YEAR\": \"${DEFAULT_YEAR}\",
-      \"--MONTH\": \"${DEFAULT_MONTH}\"
+      \"--MONTH\": \"${DEFAULT_MONTH}\",
+      \"--OUTPUT_FORMAT\": \"${OUTPUT_FORMAT}\",
+      \"--ATHENA_DATABASE\": \"${ATHENA_DATABASE}\",
+      \"--ICEBERG_TABLE\": \"${ICEBERG_TABLE}\"
     }"
   echo "Glue job created successfully."
 fi

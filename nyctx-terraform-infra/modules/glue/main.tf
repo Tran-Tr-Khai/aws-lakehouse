@@ -23,9 +23,15 @@ resource "aws_glue_job" "silver_yellow_taxi" {
   }
 
   default_arguments = {
-    "--job-language" = "python"
-    "--BUCKET"       = var.silver_job_bucket_name
-    "--YEAR"         = var.silver_job_default_year
-    "--MONTH"        = var.silver_job_default_month
+    "--job-language"            = "python"
+    "--datalake-formats"        = "iceberg"
+    "--enable-glue-datacatalog" = "true"
+    "--conf"                    = "spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions --conf spark.sql.catalog.glue_catalog=org.apache.iceberg.spark.SparkCatalog --conf spark.sql.catalog.glue_catalog.warehouse=s3://${var.silver_job_bucket_name}/ --conf spark.sql.catalog.glue_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog --conf spark.sql.catalog.glue_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO"
+    "--BUCKET"                  = var.silver_job_bucket_name
+    "--YEAR"                    = var.silver_job_default_year
+    "--MONTH"                   = var.silver_job_default_month
+    "--OUTPUT_FORMAT"           = "both"
+    "--ATHENA_DATABASE"         = var.database_name
+    "--ICEBERG_TABLE"           = "silver_yellow_taxi_iceberg"
   }
 }

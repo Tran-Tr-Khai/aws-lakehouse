@@ -31,15 +31,35 @@ class SilverJobConfig:
 
     bucket: str
     year: int
-    month: int
+    month: int | None
     write_mode: str = "overwrite"
+    output_format: str = "parquet"
+    database: str = "nyc_taxi_lakehouse"
+    iceberg_table: str = "silver_yellow_taxi_iceberg"
+    iceberg_catalog: str = "glue_catalog"
+
+    def __post_init__(self) -> None:
+        allowed_formats = {"parquet", "iceberg", "both"}
+        if self.output_format not in allowed_formats:
+            raise ValueError(
+                f"output_format must be one of {sorted(allowed_formats)}, "
+                f"got: {self.output_format}"
+            )
+
+    @property
+    def is_annual(self) -> bool:
+        return self.month is None
 
     @property
     def month_str(self) -> str:
+        if self.month is None:
+            return "ALL"
         return f"{self.month:02d}"
 
     @property
     def bronze_path(self) -> str:
+        if self.is_annual:
+            return f"s3://{self.bucket}/bronze/yellow_taxi/year={self.year}/"
         return (
             f"s3://{self.bucket}/bronze/yellow_taxi/"
             f"year={self.year}/month={self.month_str}/"
@@ -47,17 +67,39 @@ class SilverJobConfig:
 
     @property
     def silver_path(self) -> str:
+        if self.is_annual:
+            return f"s3://{self.bucket}/silver/yellow_taxi/"
         return (
             f"s3://{self.bucket}/silver/yellow_taxi/"
             f"year={self.year}/month={self.month_str}/"
         )
 
     @property
+    def silver_iceberg_location(self) -> str:
+        return f"s3://{self.bucket}/silver_iceberg/yellow_taxi/"
+
+    @property
+    def iceberg_table_identifier(self) -> str:
+        return f"{self.iceberg_catalog}.{self.database}.{self.iceberg_table}"
+
+    @property
+    def writes_parquet(self) -> bool:
+        return self.output_format in {"parquet", "both"}
+
+    @property
+    def writes_iceberg(self) -> bool:
+        return self.output_format in {"iceberg", "both"}
+
+    @property
     def start_date(self) -> datetime:
+        if self.month is None:
+            return datetime(self.year, 1, 1)
         return datetime(self.year, self.month, 1)
 
     @property
     def end_date(self) -> datetime:
+        if self.month is None:
+            return datetime(self.year + 1, 1, 1)
         if self.month == 12:
             return datetime(self.year + 1, 1, 1)
         return datetime(self.year, self.month + 1, 1)
@@ -70,14 +112,26 @@ class SilverJobConfig:
     def end_date_str(self) -> str:
         return self.end_date.strftime("%Y-%m-%d")
 
+    @property
+    def batch_label(self) -> str:
+        if self.is_annual:
+            return str(self.year)
+        return f"{self.year}-{self.month_str}"
+
 
 def config_from_glue_args(raw_args: dict[str, str]) -> SilverJobConfig:
     """Translate Glue string arguments into a typed config."""
+    month_arg = raw_args["MONTH"].strip()
+    month = None if month_arg.upper() in {"ALL", "YEAR"} else int(month_arg)
     return SilverJobConfig(
         bucket=raw_args["BUCKET"],
         year=int(raw_args["YEAR"]),
-        month=int(raw_args["MONTH"]),
+        month=month,
+        output_format=raw_args.get("OUTPUT_FORMAT", "parquet").strip().lower(),
+        database=raw_args.get("ATHENA_DATABASE", "nyc_taxi_lakehouse"),
+        iceberg_table=raw_args.get("ICEBERG_TABLE", "silver_yellow_taxi_iceberg"),
     )
+
 
 
 def ensure_column(df: DataFrame, column_name: str, default_value: object) -> DataFrame:
@@ -249,8 +303,8 @@ def build_silver_dataframe(df: DataFrame, config: SilverJobConfig) -> DataFrame:
             | F.col("is_distance_duration_mismatch")
             | F.col("is_same_zone_high_fare"),
         )
-        .withColumn("year", F.lit(config.year))
-        .withColumn("month", F.lit(config.month))
+        .withColumn("year", F.year("tpep_pickup_datetime") if config.is_annual else F.lit(config.year))
+        .withColumn("month", F.month("tpep_pickup_datetime") if config.is_annual else F.lit(config.month))
         .select(
             F.col("VendorID").cast("int").alias("vendor_id"),
             F.col("tpep_pickup_datetime").alias("pickup_datetime"),
@@ -295,27 +349,77 @@ def build_silver_dataframe(df: DataFrame, config: SilverJobConfig) -> DataFrame:
             F.col("is_distance_duration_mismatch").cast("boolean").alias("is_distance_duration_mismatch"),
             F.col("is_same_zone_high_fare").cast("boolean").alias("is_same_zone_high_fare"),
             F.col("is_analytical_outlier").cast("boolean").alias("is_analytical_outlier"),
-            F.col("year").cast("int").alias("year"),
-            F.col("month").cast("int").alias("month"),
+            F.col("year").cast("string").alias("year"),
+            F.lpad(F.col("month").cast("string"), 2, "0").alias("month"),
         )
     )
 
 
+def write_parquet_silver_dataframe(df: DataFrame, config: SilverJobConfig) -> None:
+    """Write legacy Silver Parquet files used by the original Athena external table."""
+    writer = df.write.mode(config.write_mode)
+    if config.is_annual:
+        writer.partitionBy("year", "month").parquet(config.silver_path)
+        return
+    writer.parquet(config.silver_path)
+
+
+def write_iceberg_silver_dataframe(df: DataFrame, config: SilverJobConfig) -> None:
+    """Write Silver data through Iceberg so commits publish table snapshots atomically."""
+    writer = (
+        df.writeTo(config.iceberg_table_identifier)
+        .using("iceberg")
+        .option("path", config.silver_iceberg_location)
+        .tableProperty("format-version", "2")
+        .tableProperty("write.format.default", "parquet")
+        .partitionedBy("year", "month")
+    )
+
+    try:
+        writer.create()
+        return
+    except Exception as exc:  # pragma: no cover - Spark/Iceberg runtime owns exception classes
+        message = str(exc).lower()
+        if "already exists" not in message and "table or view" not in message:
+            raise
+
+    df.writeTo(config.iceberg_table_identifier).overwritePartitions()
+
+
 def write_silver_dataframe(df: DataFrame, config: SilverJobConfig) -> None:
-    """Write one month of Silver data to S3."""
-    df.write.mode(config.write_mode).parquet(config.silver_path)
+    """Write Silver data to the requested lake storage format."""
+    if config.writes_parquet:
+        write_parquet_silver_dataframe(df, config)
+    if config.writes_iceberg:
+        write_iceberg_silver_dataframe(df, config)
+
+
+def prepare_silver_dataframe_for_write(df: DataFrame, config: SilverJobConfig) -> DataFrame:
+    """Rebalance annual batches by write partition so monthly folders land more evenly."""
+    if config.is_annual:
+        return df.repartition("year", "month")
+    return df
 
 
 def run_silver_job(spark: SparkSession, config: SilverJobConfig, logger: Logger) -> None:
     """Execute the Silver transformation end-to-end."""
     logger.info("Glue Silver Yellow Taxi Job Started")
+    logger.info("Batch label: %s", config.batch_label)
     logger.info("Bronze input path: %s", config.bronze_path)
-    logger.info("Silver output path: %s", config.silver_path)
+    logger.info("Silver output format: %s", config.output_format)
+    if config.writes_parquet:
+        logger.info("Silver Parquet output path: %s", config.silver_path)
+    if config.writes_iceberg:
+        logger.info("Silver Iceberg table: %s", config.iceberg_table_identifier)
+        logger.info("Silver Iceberg location: %s", config.silver_iceberg_location)
     logger.info(
         "Batch pickup range: [%s, %s)",
         config.start_date_str,
         config.end_date_str,
     )
+
+    if config.is_annual:
+        spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
 
     bronze_df = spark.read.parquet(config.bronze_path)
     silver_df = build_silver_dataframe(bronze_df, config)
@@ -326,6 +430,7 @@ def run_silver_job(spark: SparkSession, config: SilverJobConfig, logger: Logger)
     logger.info("Silver row count: %s", silver_count)
     logger.info("Dropped row count: %s", bronze_count - silver_count)
 
-    write_silver_dataframe(silver_df, config)
+    write_ready_df = prepare_silver_dataframe_for_write(silver_df, config)
+    write_silver_dataframe(write_ready_df, config)
     logger.info("Silver data written successfully.")
     logger.info("Glue Silver Yellow Taxi Job Completed")

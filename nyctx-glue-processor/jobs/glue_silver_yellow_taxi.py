@@ -8,9 +8,23 @@ from pyspark.context import SparkContext
 
 from nyctx_glue_processor.silver_job import config_from_glue_args, run_silver_job
 
+OPTIONAL_GLUE_ARGS = (
+    "OUTPUT_FORMAT",
+    "ATHENA_DATABASE",
+    "ICEBERG_TABLE",
+)
+
+
+def resolve_glue_args() -> dict[str, str]:
+    args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET", "YEAR", "MONTH"])
+    for name in OPTIONAL_GLUE_ARGS:
+        if f"--{name}" in sys.argv:
+            args.update(getResolvedOptions(sys.argv, [name]))
+    return args
+
 
 def main() -> None:
-    args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET", "YEAR", "MONTH"])
+    args = resolve_glue_args()
 
     sc = SparkContext.getOrCreate()
     glue_context = GlueContext(sc)

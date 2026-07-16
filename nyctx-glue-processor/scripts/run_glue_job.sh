@@ -9,13 +9,19 @@ BUCKET="${NYCTX_S3_BUCKET:-nyc-taxi-lakehouse-tntk}"
 JOB_NAME="${NYCTX_GLUE_JOB_NAME:-glue-silver-yellow-taxi}"
 START_RETRIES="${NYCTX_GLUE_START_RETRIES:-10}"
 START_RETRY_SECONDS="${NYCTX_GLUE_START_RETRY_SECONDS:-30}"
+OUTPUT_FORMAT="${NYCTX_SILVER_OUTPUT_FORMAT:-both}"
+ATHENA_DATABASE="${NYCTX_ATHENA_DATABASE:-nyc_taxi_lakehouse}"
+ICEBERG_TABLE="${NYCTX_ICEBERG_TABLE:-silver_yellow_taxi_iceberg}"
+ICEBERG_SPARK_CONF="spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions --conf spark.sql.catalog.glue_catalog=org.apache.iceberg.spark.SparkCatalog --conf spark.sql.catalog.glue_catalog.warehouse=s3://${BUCKET}/ --conf spark.sql.catalog.glue_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog --conf spark.sql.catalog.glue_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO"
 
 MONTHS_FILE=""
 YEAR_MONTHS=()
+ANNUAL_YEAR=""
 FORCE=false
 
 usage() {
   echo "Usage:"
+  echo "  $0 --year 2024 [--force]"
   echo "  $0 2024 1 [--force]"
   echo "  $0 --year-months 2024-01 2020-04 [--force]"
   echo "  $0 --months-file config/recovery_sample_months.txt [--force]"
@@ -77,7 +83,13 @@ start_job_with_retry() {
         --arguments "{
           \"--BUCKET\": \"${BUCKET}\",
           \"--YEAR\": \"${year}\",
-          \"--MONTH\": \"${month_int}\"
+          \"--MONTH\": \"${month_int}\",
+          \"--OUTPUT_FORMAT\": \"${OUTPUT_FORMAT}\",
+          \"--ATHENA_DATABASE\": \"${ATHENA_DATABASE}\",
+          \"--ICEBERG_TABLE\": \"${ICEBERG_TABLE}\",
+          \"--datalake-formats\": \"iceberg\",
+          \"--enable-glue-datacatalog\": \"true\",
+          \"--conf\": \"${ICEBERG_SPARK_CONF}\"
         }" \
         --query "JobRunId" \
         --output text 2>&1
@@ -99,11 +111,28 @@ start_job_with_retry() {
 }
 
 silver_output_exists() {
+  if [[ "${OUTPUT_FORMAT}" == "iceberg" || "${OUTPUT_FORMAT}" == "both" ]]; then
+    return 1
+  fi
+
   local year="$1"
   local month="$2"
   local silver_prefix="s3://${BUCKET}/silver/yellow_taxi/year=${year}/month=${month}/"
 
   aws s3 ls "${silver_prefix}" --region "${AWS_REGION}" 2>/dev/null \
+    | awk '{print $4}' \
+    | grep -q '\.parquet$'
+}
+
+silver_year_output_exists() {
+  if [[ "${OUTPUT_FORMAT}" == "iceberg" || "${OUTPUT_FORMAT}" == "both" ]]; then
+    return 1
+  fi
+
+  local year="$1"
+  local silver_prefix="s3://${BUCKET}/silver/yellow_taxi/year=${year}/"
+
+  aws s3 ls "${silver_prefix}" --recursive --region "${AWS_REGION}" 2>/dev/null \
     | awk '{print $4}' \
     | grep -q '\.parquet$'
 }
@@ -136,6 +165,8 @@ run_one_month() {
   echo "Job name: ${JOB_NAME}"
   echo "Period: ${year_month}"
   echo "Bucket: ${BUCKET}"
+  echo "Output format: ${OUTPUT_FORMAT}"
+  echo "Iceberg table: ${ATHENA_DATABASE}.${ICEBERG_TABLE}"
   echo "========================================"
 
   local job_run_id
@@ -149,6 +180,43 @@ run_one_month() {
   aws s3 ls "s3://${BUCKET}/silver/yellow_taxi/year=${year}/month=${month}/" \
     --region "${AWS_REGION}"
 }
+
+run_one_year() {
+  local year="$1"
+
+  if [[ ! "${year}" =~ ^[0-9]{4}$ ]]; then
+    echo "ERROR: Invalid year format: ${year}. Expected YYYY."
+    exit 1
+  fi
+
+  if [[ "${FORCE}" == false ]] && silver_year_output_exists "${year}"; then
+    echo "[SKIP] Silver output already exists for year ${year}."
+    echo "       Use --force to rerun Glue and overwrite this year partition set."
+    return 0
+  fi
+
+  echo "========================================"
+  echo "Starting AWS Glue annual job"
+  echo "Job name: ${JOB_NAME}"
+  echo "Period: ${year}"
+  echo "Bucket: ${BUCKET}"
+  echo "Output format: ${OUTPUT_FORMAT}"
+  echo "Iceberg table: ${ATHENA_DATABASE}.${ICEBERG_TABLE}"
+  echo "========================================"
+
+  local job_run_id
+  job_run_id="$(start_job_with_retry "${year}" "${year}" "ALL")"
+
+  echo "[STARTED] ${year} -> ${job_run_id}"
+
+  wait_for_job "${job_run_id}" "${year}"
+
+  echo "[SILVER OUTPUT]"
+  aws s3 ls "s3://${BUCKET}/silver/yellow_taxi/year=${year}/" \
+    --recursive \
+    --region "${AWS_REGION}"
+}
+
 
 if [[ $# -ge 2 && "$1" != --* ]]; then
   year="$1"
@@ -191,6 +259,10 @@ while [[ $# -gt 0 ]]; do
       MONTHS_FILE="$2"
       shift 2
       ;;
+    --year)
+      ANNUAL_YEAR="$2"
+      shift 2
+      ;;
     --force)
       FORCE=true
       shift
@@ -220,8 +292,19 @@ if [[ -n "${MONTHS_FILE}" ]]; then
   while IFS= read -r line; do
     line="$(echo "$line" | xargs)"
     [[ -z "${line}" || "${line}" == \#* ]] && continue
+
     YEAR_MONTHS+=("${line}")
   done < "${MONTHS_FILE}"
+fi
+
+if [[ -n "${ANNUAL_YEAR}" ]]; then
+  if [[ -n "${MONTHS_FILE}" || ${#YEAR_MONTHS[@]} -gt 0 ]]; then
+    echo "ERROR: --year cannot be combined with --months-file or --year-months."
+    exit 1
+  fi
+
+  run_one_year "${ANNUAL_YEAR}"
+  exit 0
 fi
 
 if [[ ${#YEAR_MONTHS[@]} -eq 0 ]]; then
@@ -232,6 +315,7 @@ fi
 
 echo "========================================"
 echo "Running Glue Silver jobs sequentially"
+
 echo "Total months: ${#YEAR_MONTHS[@]}"
 echo "Months: ${YEAR_MONTHS[*]}"
 echo "========================================"
