@@ -17,11 +17,7 @@ x-airflow-common:
     AWS_PROFILE: ${AWS_PROFILE:-default}
     NYCTX_S3_BUCKET: ${NYCTX_S3_BUCKET:-nyc-taxi-lakehouse-tntk}
     NYCTX_GLUE_JOB_NAME: ${NYCTX_GLUE_JOB_NAME:-glue-silver-yellow-taxi}
-    NYCTX_ATHENA_WORKGROUP: ${NYCTX_ATHENA_WORKGROUP:-wg_nyc_taxi_lakehouse}
-    NYCTX_ATHENA_OUTPUT_LOCATION: ${NYCTX_ATHENA_OUTPUT_LOCATION:-s3://nyc-taxi-lakehouse-tntk/athena-results/}
-    NYCTX_ATHENA_DATABASE: ${NYCTX_ATHENA_DATABASE:-nyc_taxi_lakehouse}
-    NYCTX_ATHENA_SILVER_TABLE: ${NYCTX_ATHENA_SILVER_TABLE:-silver_yellow_taxi}
-    NYCTX_ATHENA_SILVER_LOCATION: ${NYCTX_ATHENA_SILVER_LOCATION:-s3://nyc-taxi-lakehouse-tntk/silver/yellow_taxi/}
+    NYCTX_SILVER_OUTPUT_FORMAT: ${NYCTX_SILVER_OUTPUT_FORMAT:-iceberg}
     NYCTX_ZONE_LOOKUP_LOCATION: ${NYCTX_ZONE_LOOKUP_LOCATION:-s3://nyc-taxi-lakehouse-tntk/reference/taxi_zone_lookup/}
     NYCTX_ZONE_CENTROIDS_LOCATION: ${NYCTX_ZONE_CENTROIDS_LOCATION:-s3://nyc-taxi-lakehouse-tntk/reference/taxi_zone_centroids/}
     NYCTX_DBT_ATHENA_WORKGROUP: ${NYCTX_DBT_ATHENA_WORKGROUP:-wg_nyc_taxi_dbt}

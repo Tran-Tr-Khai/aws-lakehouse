@@ -1,0 +1,70 @@
+project_root: /opt/airflow/project
+runtime_plan_root: /opt/airflow/logs/partition_plans
+
+cache:
+  xdg_cache_home: /home/airflow/.cache
+  uv_cache_dir: /home/airflow/.cache/uv
+  uv_link_mode: copy
+
+scripts:
+  athena_sql: nyctx-athena-catalog/scripts/run_athena_sql.sh
+  athena_validate: nyctx-athena-catalog/scripts/validate_silver_partitions.sh
+  glue_deploy: bash nyctx-glue-processor/scripts/deploy_glue_job_terraform.sh
+
+athena_catalog_steps:
+  - file: nyctx-athena-catalog/ddl/create_database.sql
+    label: create_database
+  - file: nyctx-athena-catalog/ddl/create_reference_taxi_zone_lookup.sql
+    label: create_reference_taxi_zone_lookup
+  - file: nyctx-athena-catalog/ddl/create_reference_taxi_zone_centroids.sql
+    label: create_reference_taxi_zone_centroids
+  - file: nyctx-athena-catalog/ddl/create_silver_yellow_taxi_iceberg.sql
+    label: create_silver_yellow_taxi_iceberg
+
+dag:
+  id: pipeline
+  description: NYC Taxi Bronze ingestion, Silver Glue transform, Athena checks, and optional dbt Gold build
+  start_date: 2026-01-01
+  schedule: null
+  catchup: false
+  tags:
+    - nyc-taxi
+    - bronze
+    - silver
+    - gold
+    - aws
+
+params:
+  partition_scope:
+    default: all
+    type: string
+    description: "Partitions to run. Use all, YYYY, YYYY-MM, or START:END."
+  all_partition_scope:
+    default: 2019:2024
+    type: string
+    description: Concrete range used when partition_scope=all.
+  execution_mode:
+    default: per_month
+    type: string
+    description: "Execution strategy: all_at_once, per_month, or chunked."
+  chunk_size:
+    default: 3
+    type: integer
+    minimum: 1
+    description: Months per chunk when execution_mode=chunked.
+  run_ingestion_only:
+    default: false
+    type: boolean
+    description: Stop after Bronze ingestion and skip Silver/Gold downstream tasks.
+  run_gold:
+    default: false
+    type: boolean
+    description: Check/build dbt Gold models. Existing complete Gold outputs are skipped without Athena scans.
+  force_gold:
+    default: false
+    type: boolean
+    description: Force rebuild dbt Gold models even when existing Gold outputs look complete.
+  run_dbt_tests:
+    default: true
+    type: boolean
+    description: Run dbt tests after dbt Gold models are built.
