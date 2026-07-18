@@ -35,13 +35,10 @@ def render_sql_template(
 ) -> str:
     replacements = {
         '__NYCTX_ATHENA_DATABASE__': config.database,
-        '__NYCTX_ATHENA_SILVER_TABLE__': config.silver_table,
-        '__NYCTX_ATHENA_SILVER_LOCATION__': config.silver_location,
-        '__NYCTX_ATHENA_ICEBERG_TABLE__': config.iceberg_table,
-        '__NYCTX_ATHENA_ICEBERG_LOCATION__': config.iceberg_location,
+        '__NYCTX_ATHENA_TABLE__': config.table_name,
+        '__NYCTX_ATHENA_TABLE_LOCATION__': config.table_location,
         '__NYCTX_ZONE_LOOKUP_LOCATION__': config.zone_lookup_location,
         '__NYCTX_ZONE_CENTROIDS_LOCATION__': config.zone_centroids_location,
-        '__NYCTX_ATHENA_YEAR_RANGE__': config.year_range,
     }
 
     if year is not None and month is not None:
@@ -135,10 +132,8 @@ def run_sql_file(
     print(f'[INFO] label={label}')
     print(f'[INFO] sql_file={sql_file}')
     print(f'[INFO] database={config.database}')
-    print(f'[INFO] silver_table={config.silver_table}')
-    print(f'[INFO] silver_location={config.silver_location}')
-    print(f'[INFO] iceberg_table={config.iceberg_table}')
-    print(f'[INFO] iceberg_location={config.iceberg_location}')
+    print(f'[INFO] table={config.table_name}')
+    print(f'[INFO] table_location={config.table_location}')
     print(f'[INFO] zone_lookup_location={config.zone_lookup_location}')
     print(f'[INFO] zone_centroids_location={config.zone_centroids_location}')
     print(f'[INFO] workgroup={config.workgroup}')
@@ -184,7 +179,7 @@ def validate_month_partitions(months_file: Path, config: AthenaConfig) -> None:
     print('[INFO] step=validate_silver_athena status=started')
     print(f'[INFO] months_file={months_file}')
     print(f'[INFO] database={config.database}')
-    print(f'[INFO] table={config.silver_table}')
+    print(f'[INFO] table={config.table_name}')
     print(f'[INFO] workgroup={config.workgroup}')
     print(f'[INFO] output_location={config.output_location}')
     print(f'[INFO] region={config.aws_region}')
@@ -197,7 +192,7 @@ def validate_month_partitions(months_file: Path, config: AthenaConfig) -> None:
         query = f"""
 SELECT
     COUNT(*) AS trip_count
-FROM {config.database}.{config.silver_table}
+FROM {config.database}.{config.table_name}
 WHERE year = '{year}'
   AND month = '{month}';
 """.strip()
@@ -248,7 +243,7 @@ def run_sql_main() -> None:
     run_sql_file(
         args.file,
         args.label,
-        AthenaConfig.from_env(),
+        AthenaConfig.from_yaml(),
         year=args.year,
         month=args.month,
         months_file=args.months_file,
@@ -257,4 +252,4 @@ def run_sql_main() -> None:
 
 def validate_partitions_main() -> None:
     args = build_validate_parser().parse_args()
-    validate_month_partitions(args.months_file, AthenaConfig.from_env())
+    validate_month_partitions(args.months_file, AthenaConfig.from_yaml())

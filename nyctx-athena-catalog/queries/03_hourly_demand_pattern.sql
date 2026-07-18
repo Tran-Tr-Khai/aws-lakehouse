@@ -9,7 +9,7 @@ SELECT
     SUM(total_amount) AS total_revenue,
     AVG(trip_distance) AS avg_trip_distance,
     AVG(trip_duration_minutes) AS avg_trip_duration_minutes
-FROM __NYCTX_ATHENA_DATABASE__.__NYCTX_ATHENA_SILVER_TABLE__
+FROM __NYCTX_ATHENA_DATABASE__.__NYCTX_ATHENA_TABLE__
 WHERE year = '__NYCTX_ATHENA_QUERY_YEAR__'
   AND month = '__NYCTX_ATHENA_QUERY_MONTH__'
 GROUP BY

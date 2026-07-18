@@ -45,6 +45,8 @@ EXPECTED_SILVER_SCHEMA = [
     ('is_distance_duration_mismatch', 'BOOLEAN'),
     ('is_same_zone_high_fare', 'BOOLEAN'),
     ('is_analytical_outlier', 'BOOLEAN'),
+    ('year', 'STRING'),
+    ('month', 'STRING'),
 ]
 
 
@@ -52,7 +54,7 @@ def test_silver_ddl_matches_output_schema_contract() -> None:
     ddl_path = (
         Path(__file__).resolve().parents[1]
         / 'ddl'
-        / 'create_silver_yellow_taxi.sql'
+        / 'create_silver_yellow_taxi_iceberg.sql'
     )
     ddl = ddl_path.read_text(encoding='utf-8')
     columns_block = ddl.split('(', 1)[1].split(')\nPARTITIONED BY', 1)[0]
@@ -63,4 +65,3 @@ def test_silver_ddl_matches_output_schema_contract() -> None:
     ]
 
     assert actual_schema == EXPECTED_SILVER_SCHEMA
-    assert "'projection.year.range' = '__NYCTX_ATHENA_YEAR_RANGE__'" in ddl

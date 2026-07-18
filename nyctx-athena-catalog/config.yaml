@@ -1,0 +1,11 @@
+aws_region: us-east-1
+s3_bucket: nyc-taxi-lakehouse-tntk
+workgroup: wg_nyc_taxi_lakehouse
+output_location: s3://nyc-taxi-lakehouse-tntk/athena-results/
+database: nyc_taxi_lakehouse
+table_name: silver_yellow_taxi_iceberg
+table_location: s3://nyc-taxi-lakehouse-tntk/silver/yellow_taxi/
+zone_lookup_location: s3://nyc-taxi-lakehouse-tntk/reference/taxi_zone_lookup/
+zone_centroids_location: s3://nyc-taxi-lakehouse-tntk/reference/taxi_zone_centroids/
+poll_seconds: 5
+query_timeout_seconds: 1800

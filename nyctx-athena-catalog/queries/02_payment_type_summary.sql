@@ -10,7 +10,7 @@ SELECT
     AVG(fare_amount) AS avg_fare_amount,
     AVG(tip_amount) AS avg_tip_amount,
     AVG(tip_rate) AS avg_tip_rate
-FROM __NYCTX_ATHENA_DATABASE__.__NYCTX_ATHENA_SILVER_TABLE__
+FROM __NYCTX_ATHENA_DATABASE__.__NYCTX_ATHENA_TABLE__
 WHERE year = '__NYCTX_ATHENA_QUERY_YEAR__'
   AND month = '__NYCTX_ATHENA_QUERY_MONTH__'
 GROUP BY

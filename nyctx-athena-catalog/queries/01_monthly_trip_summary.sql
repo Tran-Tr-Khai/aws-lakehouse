@@ -11,7 +11,7 @@ SELECT
     AVG(trip_distance) AS avg_trip_distance,
     AVG(trip_duration_minutes) AS avg_trip_duration_minutes,
     SUM(CASE WHEN is_analytical_outlier THEN 1 ELSE 0 END) AS analytical_outlier_count
-FROM __NYCTX_ATHENA_DATABASE__.__NYCTX_ATHENA_SILVER_TABLE__
+FROM __NYCTX_ATHENA_DATABASE__.__NYCTX_ATHENA_TABLE__
 WHERE __NYCTX_ATHENA_PERIOD_FILTER__
 GROUP BY
     year,

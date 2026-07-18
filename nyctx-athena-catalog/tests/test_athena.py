@@ -13,15 +13,12 @@ def make_config(*, timeout_seconds: int = 1800) -> AthenaConfig:
         workgroup='wg',
         output_location='s3://bucket/athena-results/',
         database='db',
-        silver_table='silver_table',
-        silver_location='s3://bucket/silver/',
-        iceberg_table='silver_iceberg_table',
-        iceberg_location='s3://bucket/silver_iceberg/',
+        table_name='silver_yellow_taxi_iceberg',
+        table_location='s3://bucket/silver/',
         zone_lookup_location='s3://bucket/reference/lookup/',
         zone_centroids_location='s3://bucket/reference/centroids/',
         poll_seconds=1,
         query_timeout_seconds=timeout_seconds,
-        year_range='2019,2030',
     )
 
 

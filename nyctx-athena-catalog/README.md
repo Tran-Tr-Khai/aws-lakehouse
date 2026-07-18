@@ -70,17 +70,11 @@ bash nyctx-athena-catalog/scripts/run_athena_sql.sh \
   --label create_reference_taxi_zone_centroids
 
 bash nyctx-athena-catalog/scripts/run_athena_sql.sh \
-  --file nyctx-athena-catalog/ddl/create_silver_yellow_taxi.sql \
-  --label create_silver_yellow_taxi
+  --file nyctx-athena-catalog/ddl/create_silver_yellow_taxi_iceberg.sql \
+  --label create_silver_yellow_taxi_iceberg
 ```
 
-The DDL reads environment variables such as `NYCTX_ATHENA_DATABASE`,
-`NYCTX_ATHENA_SILVER_TABLE`, and `NYCTX_ATHENA_SILVER_LOCATION`. For the
-current project defaults these point to the non-`dev` resources, and you can
-override them per environment with shell variables.
-
-The Silver table uses partition projection, so you do not need to run manual
-`ALTER TABLE ADD PARTITION` for every processed month.
+The DDL reads the project file `nyctx-athena-catalog/config.yaml`. Update the YAML directly when you want to change bucket, database, or table paths.
 
 Partition columns are strings:
 
@@ -92,17 +86,14 @@ month STRING
 This matches the S3 folder names such as `year=2024/month=01/` and makes query
 filters explicit.
 
-The Silver DDL also uses `NYCTX_ATHENA_YEAR_RANGE` for partition projection, so
-you can extend the supported year window without editing SQL by hand.
+Athena runtime settings now live in `nyctx-athena-catalog/config.yaml`.
 
-Query polling has production guardrails:
+Key fields:
 
-- `NYCTX_ATHENA_POLL_SECONDS` defaults to `5`;
-- `NYCTX_ATHENA_QUERY_TIMEOUT_SECONDS` defaults to `1800`;
-- timed-out queries are cancelled instead of polling forever;
-- invalid identifiers, S3 locations, projection ranges, unresolved SQL
-  placeholders, duplicate periods, and empty period files fail before a query
-  is submitted.
+- `poll_seconds`
+- `query_timeout_seconds`
+- `table_name`
+- `table_location`
 
 ## Safe Smoke Test
 
@@ -154,7 +145,7 @@ partition-filtered row-count query per month:
 
 ```sql
 SELECT COUNT(*) AS trip_count
-FROM ${NYCTX_ATHENA_DATABASE}.${NYCTX_ATHENA_SILVER_TABLE}
+FROM <database>.<table_name>
 WHERE year = '<YYYY>'
   AND month = '<MM>';
 ```

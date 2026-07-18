@@ -17,35 +17,29 @@ def build_config() -> AthenaConfig:
         workgroup='wg',
         output_location='s3://bucket/athena-results/',
         database='db',
-        silver_table='silver_table',
-        silver_location='s3://bucket/silver/',
-        iceberg_table='silver_iceberg_table',
-        iceberg_location='s3://bucket/silver_iceberg/',
+        table_name='silver_yellow_taxi_iceberg',
+        table_location='s3://bucket/silver/',
         zone_lookup_location='s3://bucket/reference/lookup/',
         zone_centroids_location='s3://bucket/reference/centroids/',
         poll_seconds=5,
         query_timeout_seconds=1800,
-        year_range='2019,2030',
     )
 
 
 def test_render_sql_template_replaces_known_placeholders() -> None:
     rendered = render_sql_template(
         '__NYCTX_ATHENA_DATABASE__|'
-        '__NYCTX_ATHENA_SILVER_TABLE__|'
-        '__NYCTX_ATHENA_SILVER_LOCATION__|'
-        '__NYCTX_ATHENA_ICEBERG_TABLE__|'
-        '__NYCTX_ATHENA_ICEBERG_LOCATION__|'
+        '__NYCTX_ATHENA_TABLE__|'
+        '__NYCTX_ATHENA_TABLE_LOCATION__|'
         '__NYCTX_ZONE_LOOKUP_LOCATION__|'
-        '__NYCTX_ZONE_CENTROIDS_LOCATION__|'
-        '__NYCTX_ATHENA_YEAR_RANGE__',
+        '__NYCTX_ZONE_CENTROIDS_LOCATION__|',
         build_config(),
     )
 
     assert rendered == (
-        'db|silver_table|s3://bucket/silver/|silver_iceberg_table|'
-        's3://bucket/silver_iceberg/|s3://bucket/reference/lookup/|'
-        's3://bucket/reference/centroids/|2019,2030'
+        'db|silver_yellow_taxi_iceberg|s3://bucket/silver/|'
+        's3://bucket/reference/lookup/|'
+        's3://bucket/reference/centroids/|'
     )
 
 
