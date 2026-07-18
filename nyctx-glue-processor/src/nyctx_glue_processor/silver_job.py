@@ -68,15 +68,15 @@ class SilverJobConfig:
     @property
     def silver_path(self) -> str:
         if self.is_annual:
-            return f"s3://{self.bucket}/silver/yellow_taxi/"
+            return f"s3://{self.bucket}/silver-parquet/yellow_taxi/"
         return (
-            f"s3://{self.bucket}/silver/yellow_taxi/"
+            f"s3://{self.bucket}/silver-parquet/yellow_taxi/"
             f"year={self.year}/month={self.month_str}/"
         )
 
     @property
     def silver_iceberg_location(self) -> str:
-        return f"s3://{self.bucket}/silver_iceberg/yellow_taxi/"
+        return f"s3://{self.bucket}/silver/yellow_taxi/"
 
     @property
     def iceberg_table_identifier(self) -> str:
@@ -401,6 +401,11 @@ def prepare_silver_dataframe_for_write(df: DataFrame, config: SilverJobConfig) -
     return df
 
 
+def configure_iceberg_runtime(spark: SparkSession) -> None:
+    """Enable Iceberg compatibility settings required by Glue's Spark runtime."""
+    spark.conf.set("spark.sql.iceberg.handle-timestamp-without-timezone", "true")
+
+
 def run_silver_job(spark: SparkSession, config: SilverJobConfig, logger: Logger) -> None:
     """Execute the Silver transformation end-to-end."""
     logger.info("Glue Silver Yellow Taxi Job Started")
@@ -420,6 +425,8 @@ def run_silver_job(spark: SparkSession, config: SilverJobConfig, logger: Logger)
 
     if config.is_annual:
         spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
+    if config.writes_iceberg:
+        configure_iceberg_runtime(spark)
 
     bronze_df = spark.read.parquet(config.bronze_path)
     silver_df = build_silver_dataframe(bronze_df, config)

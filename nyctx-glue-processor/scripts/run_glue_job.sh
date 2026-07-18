@@ -9,10 +9,10 @@ BUCKET="${NYCTX_S3_BUCKET:-nyc-taxi-lakehouse-tntk}"
 JOB_NAME="${NYCTX_GLUE_JOB_NAME:-glue-silver-yellow-taxi}"
 START_RETRIES="${NYCTX_GLUE_START_RETRIES:-10}"
 START_RETRY_SECONDS="${NYCTX_GLUE_START_RETRY_SECONDS:-30}"
-OUTPUT_FORMAT="${NYCTX_SILVER_OUTPUT_FORMAT:-both}"
+OUTPUT_FORMAT="${NYCTX_SILVER_OUTPUT_FORMAT:-iceberg}"
 ATHENA_DATABASE="${NYCTX_ATHENA_DATABASE:-nyc_taxi_lakehouse}"
 ICEBERG_TABLE="${NYCTX_ICEBERG_TABLE:-silver_yellow_taxi_iceberg}"
-ICEBERG_SPARK_CONF="spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions --conf spark.sql.catalog.glue_catalog=org.apache.iceberg.spark.SparkCatalog --conf spark.sql.catalog.glue_catalog.warehouse=s3://${BUCKET}/ --conf spark.sql.catalog.glue_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog --conf spark.sql.catalog.glue_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO"
+ICEBERG_SPARK_CONF="spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions --conf spark.sql.catalog.glue_catalog=org.apache.iceberg.spark.SparkCatalog --conf spark.sql.catalog.glue_catalog.warehouse=s3://${BUCKET}/ --conf spark.sql.catalog.glue_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog --conf spark.sql.catalog.glue_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO --conf spark.sql.iceberg.handle-timestamp-without-timezone=true"
 
 MONTHS_FILE=""
 YEAR_MONTHS=()
@@ -117,7 +117,7 @@ silver_output_exists() {
 
   local year="$1"
   local month="$2"
-  local silver_prefix="s3://${BUCKET}/silver/yellow_taxi/year=${year}/month=${month}/"
+  local silver_prefix="s3://${BUCKET}/silver-parquet/yellow_taxi/year=${year}/month=${month}/"
 
   aws s3 ls "${silver_prefix}" --region "${AWS_REGION}" 2>/dev/null \
     | awk '{print $4}' \
@@ -130,11 +130,39 @@ silver_year_output_exists() {
   fi
 
   local year="$1"
-  local silver_prefix="s3://${BUCKET}/silver/yellow_taxi/year=${year}/"
+  local silver_prefix="s3://${BUCKET}/silver-parquet/yellow_taxi/year=${year}/"
 
   aws s3 ls "${silver_prefix}" --recursive --region "${AWS_REGION}" 2>/dev/null \
     | awk '{print $4}' \
     | grep -q '\.parquet$'
+}
+
+show_silver_output() {
+  local parquet_prefix="$1"
+
+  echo "[SILVER OUTPUT]"
+  case "${OUTPUT_FORMAT}" in
+    parquet)
+      aws s3 ls "${parquet_prefix}" --recursive --region "${AWS_REGION}"
+      ;;
+    iceberg)
+      aws glue get-table \
+        --database-name "${ATHENA_DATABASE}" \
+        --name "${ICEBERG_TABLE}" \
+        --region "${AWS_REGION}" \
+        --query "Table.Parameters.metadata_location" \
+        --output text
+      ;;
+    both)
+      aws s3 ls "${parquet_prefix}" --recursive --region "${AWS_REGION}"
+      aws glue get-table \
+        --database-name "${ATHENA_DATABASE}" \
+        --name "${ICEBERG_TABLE}" \
+        --region "${AWS_REGION}" \
+        --query "Table.Parameters.metadata_location" \
+        --output text
+      ;;
+  esac
 }
 
 run_one_month() {
@@ -176,9 +204,7 @@ run_one_month() {
 
   wait_for_job "${job_run_id}" "${year_month}"
 
-  echo "[SILVER OUTPUT]"
-  aws s3 ls "s3://${BUCKET}/silver/yellow_taxi/year=${year}/month=${month}/" \
-    --region "${AWS_REGION}"
+  show_silver_output "s3://${BUCKET}/silver-parquet/yellow_taxi/year=${year}/month=${month}/"
 }
 
 run_one_year() {
@@ -211,10 +237,7 @@ run_one_year() {
 
   wait_for_job "${job_run_id}" "${year}"
 
-  echo "[SILVER OUTPUT]"
-  aws s3 ls "s3://${BUCKET}/silver/yellow_taxi/year=${year}/" \
-    --recursive \
-    --region "${AWS_REGION}"
+  show_silver_output "s3://${BUCKET}/silver-parquet/yellow_taxi/year=${year}/"
 }
 
 
