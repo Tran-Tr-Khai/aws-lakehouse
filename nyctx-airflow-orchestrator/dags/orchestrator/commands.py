@@ -4,6 +4,7 @@ import shlex
 import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable
 
 from orchestrator.config import PipelineConfig
@@ -72,6 +73,9 @@ class CommandBuilder:
         export XDG_CACHE_HOME={self.config.xdg_cache_home}
         export UV_CACHE_DIR={self.config.uv_cache_dir}
         export UV_LINK_MODE={self.config.uv_link_mode}
+        export UV_PROJECT_ENVIRONMENT={self.config.uv_project_environment}
+        export UV_PYTHON={self.config.uv_python}
+        unset VIRTUAL_ENV
         mkdir -p {self.config.xdg_cache_home} {self.config.uv_cache_dir}
 
         {command}
@@ -91,18 +95,25 @@ class CommandBuilder:
             f"--label {label}{extra_suffix}"
         )
 
-    def first_period_exports(self, months_file: str) -> CommandStep:
-        quoted_months_file = shlex.quote(months_file)
-        return CommandStep(
-            name="resolve_first_period",
-            command="\n".join(
-                [
-                    f'FIRST_PERIOD="$(head -n 1 {quoted_months_file})"',
-                    'FIRST_YEAR="${FIRST_PERIOD%-*}"',
-                    'FIRST_MONTH="${FIRST_PERIOD#*-}"',
-                ]
-            ),
+    def first_period(self, months_file: str) -> tuple[str, str]:
+        periods = (
+            line.strip()
+            for line in Path(months_file).read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
         )
+        first_period = next(periods, "")
+        parts = first_period.split("-")
+        if (
+            len(parts) != 2
+            or len(parts[0]) != 4
+            or len(parts[1]) != 2
+            or not all(part.isdigit() for part in parts)
+            or not 1 <= int(parts[1]) <= 12
+        ):
+            raise ValueError(
+                f"Invalid first period in {months_file}: {first_period!r}. Expected YYYY-MM."
+            )
+        return parts[0], parts[1]
 
     def reference_download_steps(self) -> list[CommandStep]:
         return [
@@ -146,18 +157,22 @@ class CommandBuilder:
 
     def chunk_athena_steps(self, months_file: str) -> list[CommandStep]:
         months_arg = self.months_file_arg(months_file)
+        first_year, first_month = self.first_period(months_file)
+        first_period_args = (
+            f"--year {shlex.quote(first_year)} "
+            f"--month {shlex.quote(first_month)}"
+        )
         return [
             CommandStep(
                 name="athena_validate_silver_partitions",
                 command=f"bash {self.config.athena_validate_script} {months_arg}",
             ),
-            self.first_period_exports(months_file),
             CommandStep(
                 name="athena_smoke_test",
                 command=self.athena_sql(
                     "nyctx-athena-catalog/queries/00_smoke_test.sql",
                     "smoke_test",
-                    '--year "${FIRST_YEAR}" --month "${FIRST_MONTH}"',
+                    first_period_args,
                 ),
             ),
             CommandStep(
@@ -173,7 +188,7 @@ class CommandBuilder:
                 command=self.athena_sql(
                     "nyctx-athena-catalog/queries/02_payment_type_summary.sql",
                     "payment_type_summary",
-                    '--year "${FIRST_YEAR}" --month "${FIRST_MONTH}"',
+                    first_period_args,
                 ),
             ),
             CommandStep(

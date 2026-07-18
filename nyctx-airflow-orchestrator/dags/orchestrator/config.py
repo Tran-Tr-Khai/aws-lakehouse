@@ -54,6 +54,8 @@ class PipelineConfig:
     xdg_cache_home: str
     uv_cache_dir: str
     uv_link_mode: str
+    uv_project_environment: str
+    uv_python: str
     athena_sql_script: str
     athena_validate_script: str
     glue_deploy_script: str
@@ -108,6 +110,8 @@ def load_pipeline_config(path: Path = CONFIG_PATH) -> PipelineConfig:
         xdg_cache_home=cache["xdg_cache_home"],
         uv_cache_dir=cache["uv_cache_dir"],
         uv_link_mode=cache["uv_link_mode"],
+        uv_project_environment=cache["uv_project_environment"],
+        uv_python=str(cache["uv_python"]),
         athena_sql_script=scripts["athena_sql"],
         athena_validate_script=scripts["athena_validate"],
         glue_deploy_script=scripts["glue_deploy"],

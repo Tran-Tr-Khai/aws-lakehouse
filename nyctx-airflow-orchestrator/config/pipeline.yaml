@@ -4,6 +4,8 @@ runtime_plan_root: /opt/airflow/logs/partition_plans
 cache:
   xdg_cache_home: /home/airflow/.cache
   uv_cache_dir: /home/airflow/.cache/uv
+  uv_project_environment: /home/airflow/.cache/nyctx-project-venv
+  uv_python: "3.11"
   uv_link_mode: copy
 
 scripts:
