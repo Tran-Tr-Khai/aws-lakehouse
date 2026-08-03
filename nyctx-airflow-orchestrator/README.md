@@ -215,39 +215,3 @@ NoSuchKey / file not found       -> Bronze file was not uploaded to the expected
 Permission denied /opt/airflow   -> Host-mounted folder ownership issue.
 DAG not visible                  -> Scheduler has not parsed the DAG yet, or Python import failed.
 ```
-
-## Next Steps
-
-To make the project portfolio-ready for a junior data engineering role, focus on
-these next milestones:
-
-```text
-1. Parameterize the DAG
-   Replace hard-coded months with Airflow params or config files.
-
-2. Add partition-aware orchestration
-   One task per month, with clean retry behavior and no duplicate S3 writes.
-
-3. Add data quality gates
-   Fail early when Bronze critical quality checks cross an agreed threshold.
-
-4. Register and validate Athena partitions
-   Automate MSCK/ALTER TABLE or Glue catalog repair after Bronze/Silver writes.
-
-5. Add dbt Gold models to Airflow
-   Run dbt source freshness, dbt run, and dbt test after Silver succeeds.
-
-6. Add observability
-   Write run summaries: row counts, rejected rows, S3 output paths, Glue run ids.
-
-7. Add tests and CI
-   Unit-test parsing/path helpers, lint scripts, validate DAG import in CI.
-
-8. Write a strong project README
-   Include architecture, data flow, screenshots, DAG graph, cost notes, and tradeoffs.
-```
-
-For a 1000 USD/month target, the project should demonstrate more than "it runs".
-It should show production instincts: idempotency, retries, logging, data quality,
-cost awareness, clear documentation, and a dashboard or analytics layer that
-answers business questions.
