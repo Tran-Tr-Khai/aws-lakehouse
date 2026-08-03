@@ -28,28 +28,58 @@ analysis.
 
 ```mermaid
 flowchart LR
-    source[NYC TLC Parquet Files] --> ingest[Python Ingestion]
-    ingest --> bronze[S3 Bronze]
-    bronze --> glue[AWS Glue PySpark<br/>Silver Transform]
-    glue --> silver[S3 Silver Parquet]
-    silver --> catalog[Glue Data Catalog]
-    catalog --> athena[Amazon Athena]
-    athena --> dbt[dbt Gold<br/>Core + Marts]
-    dbt --> powerbi[Power BI Dashboard]
+    subgraph DataPlane[Data Plane]
+        direction LR
 
-    airflow[Apache Airflow<br/>Batch Orchestration] -. orchestrates .-> ingest
-    airflow -. triggers .-> glue
-    airflow -. validates .-> athena
-    airflow -. runs .-> dbt
+        subgraph Source[Source]
+            source[NYC TLC Parquet Files]
+        end
 
-    terraform[Terraform<br/>Dev Infrastructure] -. provisions .-> bronze
-    terraform -. provisions .-> catalog
-    terraform -. provisions .-> athena
-    terraform -. provisions .-> glue
+        subgraph Bronze[Bronze]
+            ingest[Python Ingestion]
+            bronze[S3 Bronze<br/>Raw Parquet + Reference CSV]
+            source --> ingest --> bronze
+        end
+
+        subgraph Silver[Silver]
+            glue[AWS Glue PySpark<br/>Silver Transform]
+            silver[S3 Silver Iceberg Table]
+            bronze --> glue --> silver
+        end
+
+        subgraph QueryCatalog[Catalog and Query]
+            catalog[Glue Data Catalog<br/>Iceberg Metadata]
+            athena[Amazon Athena<br/>Validation + Exploration SQL]
+            silver --> catalog --> athena
+        end
+
+        subgraph GoldBI[Gold and BI]
+            dbt[dbt Gold<br/>Core + Marts]
+            powerbi[Power BI Dashboard]
+            athena --> dbt --> powerbi
+        end
+    end
+
+    subgraph ControlPlane[Control Plane]
+        direction TB
+        airflow[Apache Airflow<br/>Batch Orchestration]
+        terraform[Terraform<br/>Dev Infrastructure]
+    end
+
+    airflow -. prepare and run ingestion .-> ingest
+    airflow -. trigger Glue Silver .-> glue
+    airflow -. setup catalog and validate partitions .-> athena
+    airflow -. optional run Gold .-> dbt
+
+    terraform -. provision storage .-> bronze
+    terraform -. provision catalog .-> catalog
+    terraform -. provision query .-> athena
+    terraform -. provision ETL runtime .-> glue
 ```
 
-Airflow orchestrates the batch flow. Terraform provisions the dev cloud
-infrastructure.
+Airflow orchestrates plan generation, ingestion, Glue Silver runs, Athena
+catalog setup, and partition-level validation before optional dbt Gold runs.
+Terraform provisions the dev cloud infrastructure resources used by this flow.
 
 ## Current Scope
 
